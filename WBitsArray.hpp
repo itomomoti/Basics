@@ -312,16 +312,15 @@ public:
 
   /**
      If 'newSize > capacity_', it just returns false.
+     Otherwise resize and return true.
    */
   bool resizeWithoutReserve(const size_t newSize) noexcept {
     assert(newSize <= bits::UINTW_MAX(58));
-    if (newSize > size_) {
-      if (newSize > capacity_) {
-        return false;
-      }
+    if (newSize <= capacity_) {
       size_ = newSize;
+      return true;
     }
-    return true;
+    return false;
   }
 
 
