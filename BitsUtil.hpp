@@ -72,7 +72,7 @@ namespace bits{
 
   /* return the maximum uint value with w bits (w in [0, 64])
    */
-  inline uint64_t getMaxW(uint8_t w) {
+  inline uint64_t UINTW_MAX(uint8_t w) {
     return TBL_LoBits[w];
   }
 
@@ -135,14 +135,14 @@ namespace bits{
   }
 
 
-  inline void copyBitsLR_DistOffs(const uint64_t * src, uint8_t srcOffset, uint64_t * tgt, uint8_t tgtOffset, uint64_t bits) {
+  inline void mvBitsBwd_DiffOffs(const uint64_t * src, uint8_t srcOffset, uint64_t * tgt, uint8_t tgtOffset, uint64_t bits) {
     assert(srcOffset != tgtOffset);
     assert(srcOffset <= 63);
     assert(tgtOffset <= 63);
-    uint64_t diff1, diff2;
+    uint8_t diff1, diff2;
     uint64_t val = *src >> srcOffset;
     val <<= tgtOffset;
-    val |= *tgt & getMaxW(tgtOffset);
+    val |= *tgt & UINTW_MAX(tgtOffset);
     if (srcOffset > tgtOffset) {
       diff1 = srcOffset - tgtOffset;
       diff2 = 64 - diff1;
@@ -156,19 +156,18 @@ namespace bits{
       val = *src >> diff1;
       val |= *++src << diff2;
     }
-    const uint64_t mask = getMaxW(bits);
+    const uint64_t mask = UINTW_MAX(bits);
     *tgt &= ~mask;
     *tgt |= val & mask;
   }
 
 
-  inline void copyBitsRL_DistOffs(const uint64_t * src, uint8_t srcOffset, uint64_t * tgt, uint8_t tgtOffset, uint64_t bits) {
+  inline void mvBitsFwd_DiffOffs(const uint64_t * src, uint8_t srcOffset, uint64_t * tgt, uint8_t tgtOffset, uint64_t bits) {
     assert(srcOffset != tgtOffset);
     assert(srcOffset <= 63);
     assert(tgtOffset <= 63);
-    uint64_t diff1, diff2;
-    uint64_t val = *src & getMaxW(srcOffset);
-    val <<= tgtOffset;
+    uint8_t diff1, diff2;
+    uint64_t val = *src & UINTW_MAX(srcOffset);
     if (srcOffset > tgtOffset) {
       diff2 = srcOffset - tgtOffset;
       diff1 = 64 - diff2;
@@ -179,63 +178,63 @@ namespace bits{
       val <<= diff1;
       val |= *--src >> diff2;
     }
-    val |= *tgt & ~getMaxW(tgtOffset);
+    val |= *tgt & ~UINTW_MAX(tgtOffset);
     for (bits += 64 - tgtOffset; bits > 64; bits -= 64) {
       *tgt-- = val;
-      val = *src-- << diff1;
-      val |= *src >> diff2;
+      val = *src << diff1;
+      val |= *--src >> diff2;
     }
-    const uint64_t mask = getMaxW(64 - bits);
+    const uint64_t mask = UINTW_MAX(64 - bits);
     *tgt &= mask;
     *tgt |= val & ~mask;
   }
 
 
-  inline void copyBitsLR_SameOffs(const uint64_t * src, uint64_t * tgt, uint8_t offset, uint64_t bits) {
+  inline void mvBitsBwd_SameOffs(const uint64_t * src, uint64_t * tgt, uint8_t offset, uint64_t bits) {
     assert(offset <= 63);
-    const uint64_t mask1 = getMaxW(offset);
+    const uint64_t mask1 = UINTW_MAX(offset);
     uint64_t val = *tgt & mask1;
     val |= *src & ~mask1;
     for (bits += offset; bits > 64; bits -= 64) {
       *tgt++ = val;
       val = *++src;
     }
-    const uint64_t mask2 = getMaxW(bits);
+    const uint64_t mask2 = UINTW_MAX(bits);
     *tgt &= ~mask2;
     *tgt |= val & mask2;
   }
 
 
-  inline void copyBitsRL_SameOffs(const uint64_t * src, uint64_t * tgt, uint8_t offset, uint64_t bits) {
+  inline void mvBitsFwd_SameOffs(const uint64_t * src, uint64_t * tgt, uint8_t offset, uint64_t bits) {
     assert(offset <= 63);
-    const uint64_t mask1 = getMaxW(offset);
+    const uint64_t mask1 = UINTW_MAX(offset);
     uint64_t val = *src & mask1;
     val |= *tgt & ~mask1;
-    for (bits += offset; bits > 64; bits -= 64) {
+    for (bits += 64 - offset; bits > 64; bits -= 64) {
       *tgt-- = val;
       val = *--src;
     }
-    const uint64_t mask2 = getMaxW(64 - bits);
+    const uint64_t mask2 = UINTW_MAX(64 - bits);
     *tgt &= mask2;
     *tgt |= val & ~mask2;
   }
 
 
-  inline void copyBitsLR(const uint64_t * src, uint8_t srcOffset, uint64_t * tgt, uint8_t tgtOffset, uint64_t bits) {
+  inline void mvBitsBwd(const uint64_t * src, uint8_t srcOffset, uint64_t * tgt, uint8_t tgtOffset, uint64_t bits) {
     if (srcOffset != tgtOffset) {
-      copyBitsLR_DistOffs(src, srcOffset, tgt, tgtOffset, bits);
+      mvBitsBwd_DiffOffs(src, srcOffset, tgt, tgtOffset, bits);
     } else {
-      copyBitsLR_SameOffs(src, tgt, srcOffset, bits);
+      mvBitsBwd_SameOffs(src, tgt, srcOffset, bits);
     }
   }
 
 
   // NOTE: The pair <src, srcOffset> points to the ending (right next) position of the bits to be copied
-  inline void copyBitsRL(const uint64_t * src, uint8_t srcOffset, uint64_t * tgt, uint8_t tgtOffset, uint64_t bits) {
+  inline void mvBitsFwd(const uint64_t * src, uint8_t srcOffset, uint64_t * tgt, uint8_t tgtOffset, uint64_t bits) {
     if (srcOffset != tgtOffset) {
-      copyBitsRL_DistOffs(src, srcOffset, tgt, tgtOffset, bits);
+      mvBitsFwd_DiffOffs(src, srcOffset, tgt, tgtOffset, bits);
     } else {
-      copyBitsRL_SameOffs(src, tgt, srcOffset, bits);
+      mvBitsFwd_SameOffs(src, tgt, srcOffset, bits);
     }
   }
 
@@ -244,9 +243,9 @@ namespace bits{
     if (src < tgt || (src == tgt && srcOffset < tgtOffset)) { // RL should be used: values are copied from Right to Left
       const uint64_t srcBits = bits + srcOffset;
       const uint64_t tgtBits = bits + tgtOffset;
-      copyBitsRL(src + (srcBits >> 6), srcBits & 0x3f, tgt + (tgtBits >> 6), tgtBits & 0x3f, bits);
+      mvBitsFwd(src + (srcBits >> 6), srcBits & 0x3f, tgt + (tgtBits >> 6), tgtBits & 0x3f, bits);
     } else { // LR should be used: values are copied from Left to Right
-      copyBitsLR(src, srcOffset, tgt, tgtOffset, bits);
+      mvBitsBwd(src, srcOffset, tgt, tgtOffset, bits);
     }
   }
 }

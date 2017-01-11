@@ -4,16 +4,18 @@
 #include <stdint.h> // include uint64_t etc.
 #include <assert.h>
 
+#include <iostream>
 #include <iterator>
 #include <algorithm>
 
 #include "Uncopyable.hpp"
 #include "BitsUtil.hpp"
 
+#define mymalloc(p,n,t) {p = (t *)malloc((n)*sizeof(*p)); if ((p)==NULL) {printf("not enough memory at line %d\n",__LINE__); exit(1);};}
+#define myrealloc(p,n,t) {p = (t *)realloc((p),(n)*sizeof(*p)); if ((p)==NULL) {printf("not enough memory at line %d\n",__LINE__); exit(1);};}
 
 class WBitsArray;
 
-// WBitsArrayIterator is used for a reference of WBitsArray
 class WBitsArrayIterator :
   public std::iterator<std::input_iterator_tag, uint64_t>
 {
@@ -25,7 +27,7 @@ class WBitsArrayIterator :
 
 private:
   //// Called by WBitsArray
-  WBitsArrayIterator (uint64_t * array, uint8_t pos, uint8_t w) noexcept
+  WBitsArrayIterator (uint64_t * array, uint64_t pos, uint8_t w) noexcept
     : array_(array), pos_(pos), w_(w)
   {}
 
@@ -37,136 +39,171 @@ public:
   WBitsArrayIterator(WBitsArrayIterator && itr) noexcept = default;
   WBitsArrayIterator& operator=(WBitsArrayIterator && itr) noexcept = default;
 
-  inline uint64_t read() const {
-    return bits::readWBits(array_, pos_, w_, bits::getMaxW(w_));
+  uint64_t read() const {
+    return bits::readWBits(array_, pos_, w_, bits::UINTW_MAX(w_));
   }
 
-  inline void write(const uint64_t val) {
-    bits::writeWBits(val, array_, pos_, w_, bits::getMaxW(w_));
+  void write(const uint64_t val) {
+    bits::writeWBits(val, array_, pos_, w_, bits::UINTW_MAX(w_));
   }
 
   ////// operator
   //// *itr
-  inline uint64_t operator*() {
+  uint64_t operator*() {
     return this->read();
   }
 
   //// ++itr
-  inline WBitsArrayIterator & operator++() {
+  WBitsArrayIterator & operator++() {
     pos_ += w_;
     return *this;
   }
 
   //// itr++
-  inline WBitsArrayIterator operator++(int) {
+  WBitsArrayIterator operator++(int) {
     WBitsArrayIterator tmp(*this);
     ++(*this);
     return tmp;
   }
 
   //// --itr
-  inline WBitsArrayIterator & operator--() {
+  WBitsArrayIterator & operator--() {
     pos_ -= w_;
     return *this;
   }
 
   //// itr--
-  inline WBitsArrayIterator operator--(int) {
+  WBitsArrayIterator operator--(int) {
     WBitsArrayIterator tmp(*this);
     --(*this);
     return tmp;
   }
 
   //// *this != itr
-  inline bool operator!=(const WBitsArrayIterator & itr) {
-    return (array_ != itr.array_ || pos_ != itr.pos_);
+  bool operator!=(const WBitsArrayIterator & itr) {
+    return (pos_ != itr.pos_ || array_ != itr.array_);
   }
 
   //// *this == itr
-  inline bool operator==(const WBitsArrayIterator & itr) {
+  bool operator==(const WBitsArrayIterator & itr) {
     return !(*this != itr);
   }
 
   ////// add more operators
   //// itr += diff
-  inline WBitsArrayIterator & operator+=(const difference_type diff) noexcept {
+  WBitsArrayIterator & operator+=(const difference_type diff) noexcept {
     pos_ += static_cast<int64_t>(w_) * diff;
     return *this;
   }
 
   //// itr -= diff
-  inline WBitsArrayIterator & operator-=(const difference_type diff) noexcept {
+  WBitsArrayIterator & operator-=(const difference_type diff) noexcept {
     *this += (-1 * diff);
     return *this;
   }
 
   //// itr + diff
-  inline friend WBitsArrayIterator operator+(const WBitsArrayIterator & itr, const difference_type diff) noexcept {
+  friend WBitsArrayIterator operator+(const WBitsArrayIterator & itr, const difference_type diff) noexcept {
     const int64_t pos = itr.pos_ + static_cast<int64_t>(itr.w_) * diff;
     return WBitsArrayIterator(itr.array_, pos, itr.w_);
   }
 
   //// diff + itr
-  inline friend WBitsArrayIterator operator+(const difference_type diff, const WBitsArrayIterator & itr) noexcept {
+  friend WBitsArrayIterator operator+(const difference_type diff, const WBitsArrayIterator & itr) noexcept {
     return itr + diff;
   }
 
   //// itr - diff
-  inline friend WBitsArrayIterator operator-(const WBitsArrayIterator & itr, const difference_type diff) noexcept {
+  friend WBitsArrayIterator operator-(const WBitsArrayIterator & itr, const difference_type diff) noexcept {
     return itr + (-1 * diff);
   }
 
   //// lhs - rhs
-  inline friend difference_type operator-(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
+  friend difference_type operator-(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
     assert(lhs.w_ == rhs.w_);
     return (static_cast<int64_t>(lhs.pos_) - static_cast<int64_t>(rhs.pos_)) / lhs.w_;
   }
 
   //// lhs < rhs
-  inline friend bool operator<(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
-    return (lhs.pos_ < rhs.pos_);
+  friend bool operator<(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
+    return (lhs.pos_ < rhs.pos_ || lhs.array_ < rhs.array_);
   }
 
   //// rhs < lhs
-  inline friend bool operator>(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
+  friend bool operator>(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
     return (rhs < lhs);
   }
 
   //// lhs <= rhs
-  inline friend bool operator<=(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
+  friend bool operator<=(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
     return !(lhs > rhs);
   }
 
   //// lhs >= rhs
-  inline friend bool operator>=(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
+  friend bool operator>=(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
     return !(lhs < rhs);
   }
 
-  //// swap values
-  // inline void swap(WBitsArrayIterator& lhs, WBitsArrayIterator& rhs) noexcept {
-  //   assert(lhs.w_ == rhs.w_);
-  //   const uint64_t lval = *lhs;
-  //   lhs.write(*rhs);
-  //   rhs.write(lval);
-  // }
+  /**
+     NOTE: src and tgt regions can overlap. In that case, src region might lose its original values.
+   */
+  //// mvWBA_SameW
+  friend void mvWBA_SameW(WBitsArrayIterator & src, WBitsArrayIterator & tgt, const uint64_t num) {
+    assert(src.w_ == tgt.w_);
+    bits::copyBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num * src.w_);
+  }
+
+  //// mvWBA_DiffW
+  friend void mvWBA_DiffW(WBitsArrayIterator & src, WBitsArrayIterator & tgt, const uint64_t num) {
+    for (uint64_t i = 0; i < num; ++i, ++src, ++tgt) {
+      assert(src.read() <= bits::UINTW_MAX(tgt.w_));
+      tgt.write(src.read());
+    }
+  }
+
+  //// copy values
+  friend void mvWBA(WBitsArrayIterator & src, WBitsArrayIterator & tgt, const uint64_t num) {
+    if (src.w_ == tgt.w_) {
+      mvWBA_SameW(src, tgt, num);
+    } else {
+      mvWBA_DiffW(src, tgt, num);
+    }
+  }
+
+  //// copy_SameW
+  friend void mvWBA_SameW(WBitsArrayIterator && src, WBitsArrayIterator && tgt, const uint64_t num) {
+    assert(src.w_ == tgt.w_);
+    bits::copyBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num * src.w_);
+  }
+
+  //// copy_DistW
+  friend void mvWBA_DistW(WBitsArrayIterator && src, WBitsArrayIterator && tgt, const uint64_t num) {
+    for (uint64_t i = 0; i < num; ++i, ++src, ++tgt) {
+      assert(src.read() <= bits::UINTW_MAX(tgt.w_));
+      tgt.write(src.read());
+    }
+  }
+
+  //// copy values
+  friend void mvWBA(WBitsArrayIterator && src, WBitsArrayIterator && tgt, const uint64_t num) {
+    if (src.w_ == tgt.w_) {
+      mvWBA_SameW(src, tgt, num);
+    } else {
+      mvWBA_DiffW(src, tgt, num);
+    }
+  }
 };
 
-// template<>
-// inline void std::swap<WBitsArrayIterator>(WBitsArrayIterator & lhs, WBitsArrayIterator & rhs) noexcept {
-//   uint64_t lval = *lhs;
-//   lhs.write(*rhs);
-//   rhs.write(lval);
-// }
 
 
 
 class WBitsArray
   : Uncopyable
 {
+  uint64_t * array_;
+  uint8_t w_;
   size_t capacity_;
   size_t size_;
-  uint8_t w_;
-  uint64_t * array_;
 
 	static const int8_t realloc_param_ = 2; // realloc size is "realloc_param_" times larger than the current size
 
@@ -174,65 +211,62 @@ public:
   using iterator = WBitsArrayIterator;
 
 public:
-  WBitsArray(size_t capacity, uint8_t w) : capacity_(capacity), size_(0), w_(w)
+  WBitsArray(uint8_t w = 1, size_t capacity = 0) : array_(NULL), w_(w), capacity_(capacity), size_(0)
   {
-    assert(capacity_ <= bits::getMaxW(58));
+    assert(capacity_ <= bits::UINTW_MAX(58));
     assert(w_ <= 64);
-    size_t len = capacity_ * w_ / 64 + 2; // +1 for roundup, and another +1 for margin
-    array_ = NULL;
-    array_ = new uint64_t[len];
-    if (array_ == NULL) {
-      abort();
-    }
+    const size_t len = capacity_ * w_ / 64 + 2; // +1 for roundup, and another +1 for margin
+    mymalloc(array_, len, uint64_t);
   }
 
 
   ~WBitsArray()
   {
-    delete[] array_;
+    free(array_);
   }
 
 
   //// get iterator
-  inline WBitsArray::iterator getItrAt(size_t idx) noexcept {
+  WBitsArray::iterator getItrAt(size_t idx) noexcept {
     return WBitsArrayIterator(array_, idx * w_, w_);
   }
 
 
-  inline WBitsArray::iterator begin() noexcept {
+  WBitsArray::iterator begin() noexcept {
     return getItrAt(0);
   }
 
 
-  inline WBitsArray::iterator end() noexcept {
+  WBitsArray::iterator end() noexcept {
     return getItrAt(size_);
   }
 
 
-  ////
-  // We do not support "A[i]" to read/write
-  inline uint64_t read(const size_t idx) const
+  /** read/write
+      We do not provide access with 'wbArrayObj[i]'
+   */
+  uint64_t read(const size_t idx) const
   {
     assert(idx <= capacity_);
-    return bits::readWBits(array_, idx * w_, w_, bits::getMaxW(w_));
+    return bits::readWBits(array_, idx * w_, w_, bits::UINTW_MAX(w_));
   }
 
 
-  inline void write(const uint64_t val, const size_t idx)
+  void write(const uint64_t val, const size_t idx)
   {
     assert(idx <= capacity_);
-    assert(val <= bits::getMaxW(w_));
-    bits::writeWBits(val, array_, idx * w_, w_, bits::getMaxW(w_));
+    assert(val <= bits::UINTW_MAX(w_));
+    bits::writeWBits(val, array_, idx * w_, w_, bits::UINTW_MAX(w_));
   }
 
 
   // 
-  inline size_t capacity() const noexcept {
+  size_t capacity() const noexcept {
     return capacity_;
   }
 
 
-  inline size_t size() const noexcept {
+  size_t size() const noexcept {
     return size_;
   }
 
@@ -242,39 +276,78 @@ public:
   }
 
 
-  inline bool empty() const noexcept {
+  bool empty() const noexcept {
     return (size_ == 0);
   }
 
 
-  inline void clear() noexcept {
+  void clear() noexcept {
     size_ = 0;
   }
 
 
-  inline void reserve() {
-    //
-  }
-
-
-  inline void resize(const size_t newSize) {
-    if (newSize <= capacity_) {
-      size_ = newSize;
-    } else {
-      // reserve
+  /**
+     reserve does not shrink 'capacity_'
+     If 'newCapacity' > 'capacity_', expand 'array_' to store ('newCapacity' * 'w_') bits.
+     'size_' is unchanged.
+  */
+  void reserve(const size_t newCapacity) {
+    assert(newCapacity <= bits::UINTW_MAX(58));
+    if (newCapacity > capacity_) {
+      capacity_ = newCapacity;
+      const size_t len = capacity_ * w_ / 64 + 2; // +1 for roundup, and another +1 for margin
+      myrealloc(array_, len, uint64_t);
     }
   }
 
 
-  inline void setW(const uint8_t w, const bool convert = true) {
-    w_ = w;
-    if (convert) {
-      // convert the values in array
+  void resize(const size_t newSize) {
+    assert(newSize <= bits::UINTW_MAX(58));
+    if (newSize > capacity_) {
+      reserve(newSize);
     }
+    size_ = newSize;
   }
 
 
-  inline uint8_t getW() const noexcept {
+  /**
+     'convert' will do the following two tasks:
+     (1) convert values of w_ bits to those of w bits, and renew w_.
+         NOTE: If w < w_, the w_ - w significant bits for each value will be discarded.
+     (2) realloc 'array_' if needed (or we can give 'newCapacity' to expand 'capacity_' explicitly).
+         NOTE: 'array_' will never shrink.
+     TIPS: We do not provide a function to change only w_ (i.e., the setter for w_)
+           because most of the case changing w_ would be accompanied by conversion (and reallocation if needed).
+           If you want to change w_ but do not want to convert nor realloc, do the followings:
+           wbArrayObj.clear();
+           wbArrayObj.convert(w);
+  */
+  void convert(const uint8_t w, size_t newCapacity = 0) {
+    newCapacity = std::max(capacity_, newCapacity);
+    const size_t oldLen = capacity_ * w_ / 64 + 2; // +1 for roundup, and another +1 for margin
+    const size_t newLen = newCapacity * w / 64 + 2; // +1 for roundup, and another +1 for margin
+    capacity_ = newCapacity;
+    if (newLen > oldLen) {
+      myrealloc(array_, newLen, uint64_t);
+    }
+    if (w == w_) {
+      return; // do nothing
+    }
+    // convert the values in array
+    if (w > w_) {
+      for (uint64_t i = this->size() - 1; i != UINT64_MAX; --i) {
+        bits::writeWBits(this->read(i), array_, i * w, w, bits::UINTW_MAX(w));
+      }
+    } else { // w < w_ (w_ - w significant bits for each value will be discarded)
+      for (uint64_t i = 0; i < this->size(); ++i) {
+        bits::writeWBits(this->read(i) & bits::UINTW_MAX(w), array_, i * w, w, bits::UINTW_MAX(w));
+      }
+    }
+    w_ = w; // set w_
+  }
+
+
+  uint8_t getW() const noexcept {
     return w_;
   }
 };
