@@ -153,7 +153,6 @@ public:
     bits::copyBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num * src.w_);
   }
 
-  //// mvWBA_DiffW
   friend void mvWBA_DiffW(WBitsArrayIterator & src, WBitsArrayIterator & tgt, const uint64_t num) {
     for (uint64_t i = 0; i < num; ++i, ++src, ++tgt) {
       assert(src.read() <= bits::UINTW_MAX(tgt.w_));
@@ -161,7 +160,6 @@ public:
     }
   }
 
-  //// copy values
   friend void mvWBA(WBitsArrayIterator & src, WBitsArrayIterator & tgt, const uint64_t num) {
     if (src.w_ == tgt.w_) {
       mvWBA_SameW(src, tgt, num);
@@ -170,13 +168,13 @@ public:
     }
   }
 
-  //// copy_SameW
+  ////
   friend void mvWBA_SameW(WBitsArrayIterator && src, WBitsArrayIterator && tgt, const uint64_t num) {
     assert(src.w_ == tgt.w_);
     bits::copyBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num * src.w_);
   }
 
-  //// copy_DistW
+  ////
   friend void mvWBA_DistW(WBitsArrayIterator && src, WBitsArrayIterator && tgt, const uint64_t num) {
     for (uint64_t i = 0; i < num; ++i, ++src, ++tgt) {
       assert(src.read() <= bits::UINTW_MAX(tgt.w_));
@@ -184,7 +182,7 @@ public:
     }
   }
 
-  //// copy values
+  //// move values
   friend void mvWBA(WBitsArrayIterator && src, WBitsArrayIterator && tgt, const uint64_t num) {
     if (src.w_ == tgt.w_) {
       mvWBA_SameW(src, tgt, num);
