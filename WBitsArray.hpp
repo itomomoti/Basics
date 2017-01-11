@@ -243,7 +243,7 @@ public:
 
 
   /** read/write
-      We do not provide access with 'wbArrayObj[i]'
+      We do not provide access with 'WBAObj[i]'
    */
   uint64_t read(const size_t idx) const
   {
@@ -311,6 +311,21 @@ public:
 
 
   /**
+     If 'newSize > capacity_', it just returns false.
+   */
+  bool resizeWithoutReserve(const size_t newSize) noexcept {
+    assert(newSize <= bits::UINTW_MAX(58));
+    if (newSize > size_) {
+      if (newSize > capacity_) {
+        return false;
+      }
+      size_ = newSize;
+    }
+    return true;
+  }
+
+
+  /**
      'convert' will do the following two tasks:
      (1) convert values of w_ bits to those of w bits, and renew w_.
          NOTE: If w < w_, the w_ - w significant bits for each value will be discarded.
@@ -319,8 +334,8 @@ public:
      TIPS: We do not provide a function to change only w_ (i.e., the setter for w_)
            because most of the case changing w_ would be accompanied by conversion (and reallocation if needed).
            If you want to change w_ but do not want to convert nor realloc, do the followings:
-           wbArrayObj.clear();
-           wbArrayObj.convert(w);
+           WBAObj.clear();
+           WBAObj.convert(w);
   */
   void convert(const uint8_t w, size_t newCapacity = 0) {
     newCapacity = std::max(capacity_, newCapacity);
