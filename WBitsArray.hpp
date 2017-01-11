@@ -240,8 +240,9 @@ public:
   }
 
 
-  /** read/write
-      We do not provide access with 'WBAObj[i]'
+  /**
+     read/write
+     We do not provide access with 'WBAObj[i]'
    */
   uint64_t read(const size_t idx) const
   {
@@ -319,6 +320,13 @@ public:
       return true;
     }
     return false;
+  }
+
+
+  void shrink_to_fit() {
+    const size_t newLen = size_ * w_ / 64 + 2; // +1 for roundup, and another +1 for margin
+    myrealloc(array_, newLen, uint64_t);
+    capacity_ = size_;
   }
 
 
