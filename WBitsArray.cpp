@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
   for (uint8_t i = 0, w = 6; w <= 58; ++i, w += 7) {
     wba[i].convert(w, num);
     wba[i].resize(num);
-    std::cout << "calcSpace [w = " << static_cast<uint32_t>(wba[i].getW()) << "]: " << wba[i].calcSpace();
+    std::cout << "calcSpace [w = " << static_cast<uint32_t>(wba[i].getW()) << "]: " << wba[i].calcMemBytes();
     std::cout << ", size / capacity_: " << wba[i].size() << " / " << wba[i].capacity() << std::endl;
   }
   // read
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
     std::cout << std::endl;
   }
   for (uint8_t i = 0, w = 6; w <= 58; ++i, w += 7) {
-    std::cout << "calcSpace [w = " << static_cast<uint32_t>(wba[i].getW()) << "]: " << wba[i].calcSpace();
+    std::cout << "calcSpace [w = " << static_cast<uint32_t>(wba[i].getW()) << "]: " << wba[i].calcMemBytes();
     std::cout << ", size / capacity_: " << wba[i].size() << " / " << wba[i].capacity() << std::endl;
   }
   //
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
   parser.add<uint64_t>("jump", 'j', "jump for random access", false, 38201); // 38201 is a prime number
   parser.add<uint64_t>("val", 'v', "value to write (should fit in w bits)", false, 1);
   parser.add<uint8_t>("dummy", 0, "dummy argument (do not input this)", false, 0);
-  parser.add("help", 0, "pring help");
+  parser.add("help", 0, "print help");
 
   parser.parse_check(argc, argv);
   const uint64_t num = parser.get<uint64_t>("num");

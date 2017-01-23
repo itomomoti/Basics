@@ -16,6 +16,14 @@ namespace bits{
   extern const uint8_t * const TBL_Sel8_0base;
 
 
+  /**
+     return the maximum uint value with w bits (w in [0, 64])
+   */
+  inline uint64_t UINTW_MAX(uint8_t w) {
+    return TBL_LoBits[w];
+  }
+
+
   inline uint8_t cnt64(uint64_t val) {
     return __builtin_popcountll(val);
   }
@@ -67,13 +75,6 @@ namespace bits{
     }
     ret += cnt64((*words) >> (64 - i - 1));
     return ret;
-  }
-
-
-  /* return the maximum uint value with w bits (w in [0, 64])
-   */
-  inline uint64_t UINTW_MAX(uint8_t w) {
-    return TBL_LoBits[w];
   }
 
 
@@ -239,7 +240,7 @@ namespace bits{
   }
 
 
-  inline void copyBits(const uint64_t * src, uint8_t srcOffset, uint64_t * tgt, uint8_t tgtOffset, uint64_t bits) {
+  inline void mvBits(const uint64_t * src, uint8_t srcOffset, uint64_t * tgt, uint8_t tgtOffset, uint64_t bits) {
     if (src < tgt || (src == tgt && srcOffset < tgtOffset)) { // RL should be used: values are copied from Right to Left
       const uint64_t srcBits = bits + srcOffset;
       const uint64_t tgtBits = bits + tgtOffset;

@@ -10,9 +10,7 @@
 
 #include "Uncopyable.hpp"
 #include "BitsUtil.hpp"
-
-#define mymalloc(p,n,t) {p = (t *)malloc((n)*sizeof(*p)); if ((p)==NULL) {printf("not enough memory at line %d\n",__LINE__); exit(1);};}
-#define myrealloc(p,n,t) {p = (t *)realloc((p),(n)*sizeof(*p)); if ((p)==NULL) {printf("not enough memory at line %d\n",__LINE__); exit(1);};}
+#include "MemUtil.hpp"
 
 class WBitsArray;
 
@@ -150,7 +148,7 @@ public:
   //// mvWBA_SameW
   friend void mvWBA_SameW(WBitsArrayIterator & src, WBitsArrayIterator & tgt, const uint64_t num) {
     assert(src.w_ == tgt.w_);
-    bits::copyBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num * src.w_);
+    bits::mvBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num * src.w_);
   }
 
   friend void mvWBA_DiffW(WBitsArrayIterator & src, WBitsArrayIterator & tgt, const uint64_t num) {
@@ -171,7 +169,7 @@ public:
   ////
   friend void mvWBA_SameW(WBitsArrayIterator && src, WBitsArrayIterator && tgt, const uint64_t num) {
     assert(src.w_ == tgt.w_);
-    bits::copyBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num * src.w_);
+    bits::mvBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num * src.w_);
   }
 
   ////
@@ -199,9 +197,9 @@ class WBitsArray
   : Uncopyable
 {
   uint64_t * array_;
-  uint8_t w_;
   size_t capacity_;
   size_t size_;
+  uint8_t w_;
 
 	static const int8_t realloc_param_ = 2; // realloc size is "realloc_param_" times larger than the current size
 
@@ -209,12 +207,12 @@ public:
   using iterator = WBitsArrayIterator;
 
 public:
-  WBitsArray(uint8_t w = 1, size_t capacity = 0) : array_(NULL), w_(w), capacity_(capacity), size_(0)
+  WBitsArray(uint8_t w = 1, size_t capacity = 0) : array_(NULL), capacity_(capacity), size_(0), w_(w)
   {
     assert(capacity_ <= bits::UINTW_MAX(58));
     assert(w_ <= 64);
-    const size_t len = capacity_ * w_ / 64 + 2; // +1 for roundup, and another +1 for margin
-    mymalloc(array_, len, uint64_t);
+    const size_t len = capacity_ * w_ / 64 + 1; // +1 for roundup and margin
+    array_ = memutil::mymalloc<uint64_t>(len);
   }
 
 
@@ -270,8 +268,8 @@ public:
   }
 
 
-  size_t calcSpace() const noexcept {
-    return sizeof(this) + (capacity_ * w_ / 8) + 2 * sizeof(uint64_t);
+  size_t calcMemBytes() const noexcept {
+    return sizeof(*this) + (capacity_ * w_ / 64 + 1) * sizeof(uint64_t);
   }
 
 
@@ -294,8 +292,8 @@ public:
     assert(newCapacity <= bits::UINTW_MAX(58));
     if (newCapacity > capacity_) {
       capacity_ = newCapacity;
-      const size_t len = capacity_ * w_ / 64 + 2; // +1 for roundup, and another +1 for margin
-      myrealloc(array_, len, uint64_t);
+      const size_t len = capacity_ * w_ / 64 + 1; // +1 for roundup and margin
+      memutil::myrealloc<uint64_t>(array_, len);
     }
   }
 
@@ -324,8 +322,8 @@ public:
 
 
   void shrink_to_fit() {
-    const size_t newLen = size_ * w_ / 64 + 2; // +1 for roundup, and another +1 for margin
-    myrealloc(array_, newLen, uint64_t);
+    const size_t newLen = size_ * w_ / 64 + 1; // +1 for roundup and margin
+    memutil::myrealloc<uint64_t>(array_, newLen);
     capacity_ = size_;
   }
 
@@ -344,11 +342,11 @@ public:
   */
   void convert(const uint8_t w, size_t newCapacity = 0) {
     newCapacity = std::max(capacity_, newCapacity);
-    const size_t oldLen = capacity_ * w_ / 64 + 2; // +1 for roundup, and another +1 for margin
-    const size_t newLen = newCapacity * w / 64 + 2; // +1 for roundup, and another +1 for margin
+    const size_t oldLen = capacity_ * w_ / 64 + 1; // +1 for roundup and margin
+    const size_t newLen = newCapacity * w / 64 + 1; // +1 for roundup and margin
     capacity_ = newCapacity;
     if (newLen > oldLen) {
-      myrealloc(array_, newLen, uint64_t);
+      memutil::myrealloc<uint64_t>(array_, newLen);
     }
     if (w == w_) {
       return; // do nothing
