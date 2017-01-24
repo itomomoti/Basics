@@ -1,3 +1,10 @@
+/**
+ * @file WBitsArray.hpp
+ * @brief Packed array. Unsigned integers of w bits are packed into uint64_t array.
+ * @author Tomohiro I
+ * @date 2017-01-24
+ */
+
 #ifndef INCLUDE_GUARD_WBitsArray
 #define INCLUDE_GUARD_WBitsArray
 
@@ -200,8 +207,7 @@ class WBitsArray
   size_t capacity_;
   size_t size_;
   uint8_t w_;
-
-	static const int8_t realloc_param_ = 2; // realloc size is "realloc_param_" times larger than the current size
+  // static const int8_t realloc_param_ = 2; // realloc size is "realloc_param_" times larger than the current size
 
 public:
   using iterator = WBitsArrayIterator;
@@ -211,8 +217,10 @@ public:
   {
     assert(capacity_ <= bits::UINTW_MAX(58));
     assert(w_ <= 64);
-    const size_t len = capacity_ * w_ / 64 + 1; // +1 for roundup and margin
-    array_ = memutil::mymalloc<uint64_t>(len);
+    if (capacity > 0) {
+      const size_t len = (capacity_ * w_ + 63) / 64; // +63 for roundup
+      array_ = memutil::mymalloc<uint64_t>(len);
+    }
   }
 
 
@@ -292,7 +300,7 @@ public:
     assert(newCapacity <= bits::UINTW_MAX(58));
     if (newCapacity > capacity_) {
       capacity_ = newCapacity;
-      const size_t len = capacity_ * w_ / 64 + 1; // +1 for roundup and margin
+      const size_t len = (capacity_ * w_ + 63) / 64; // +63 for roundup
       memutil::myrealloc<uint64_t>(array_, len);
     }
   }
@@ -322,8 +330,12 @@ public:
 
 
   void shrink_to_fit() {
-    const size_t newLen = size_ * w_ / 64 + 1; // +1 for roundup and margin
-    memutil::myrealloc<uint64_t>(array_, newLen);
+    if (size_ > 0) {
+      const size_t newLen = (size_ * w_ + 63) / 64; // +63 for roundup
+      memutil::myrealloc<uint64_t>(array_, newLen);
+    } else {
+      memutil::myfree(array_);
+    }
     capacity_ = size_;
   }
 
@@ -342,8 +354,8 @@ public:
   */
   void convert(const uint8_t w, size_t newCapacity = 0) {
     newCapacity = std::max(capacity_, newCapacity);
-    const size_t oldLen = capacity_ * w_ / 64 + 1; // +1 for roundup and margin
-    const size_t newLen = newCapacity * w / 64 + 1; // +1 for roundup and margin
+    const size_t oldLen = (capacity_ * w_ + 63) / 64; // +63 for roundup
+    const size_t newLen = (newCapacity * w + 63) / 64; // +63 for roundup
     capacity_ = newCapacity;
     if (newLen > oldLen) {
       memutil::myrealloc<uint64_t>(array_, newLen);

@@ -144,19 +144,26 @@ namespace bits{
     uint64_t val = *src >> srcOffset;
     val <<= tgtOffset;
     val |= *tgt & UINTW_MAX(tgtOffset);
+    bits += tgtOffset;
     if (srcOffset > tgtOffset) {
       diff1 = srcOffset - tgtOffset;
       diff2 = 64 - diff1;
+      if (bits <= diff2) {
+        goto last;
+      }
       val |= *++src << diff2;
     } else {
       diff2 = tgtOffset - srcOffset;
       diff1 = 64 - diff2;
     }
-    for (bits += tgtOffset; bits > 64; bits -= 64) {
+    while (bits > 64) {
       *tgt++ = val;
+      bits -= 64;
       val = *src >> diff1;
+      if (bits <= diff2) { goto last; }
       val |= *++src << diff2;
     }
+  last:
     const uint64_t mask = UINTW_MAX(bits);
     *tgt &= ~mask;
     *tgt |= val & mask;
@@ -167,28 +174,69 @@ namespace bits{
     assert(srcOffset != tgtOffset);
     assert(srcOffset <= 63);
     assert(tgtOffset <= 63);
+    if (srcOffset == 0) {
+      srcOffset = 64;
+      --src;
+    } else if (tgtOffset == 0) {
+      tgtOffset = 64;
+      --tgt;
+    }
     uint8_t diff1, diff2;
-    uint64_t val = *src & UINTW_MAX(srcOffset);
+    uint64_t val = *tgt & ~UINTW_MAX(tgtOffset);
+    bits += 64 - tgtOffset;
     if (srcOffset > tgtOffset) {
       diff2 = srcOffset - tgtOffset;
       diff1 = 64 - diff2;
-      val >>= diff2;
+      val |= (*src & UINTW_MAX(srcOffset)) >> diff2;
     } else {
       diff1 = tgtOffset - srcOffset;
       diff2 = 64 - diff1;
-      val <<= diff1;
-      val |= *--src >> diff2;
+      val |= (*src & UINTW_MAX(srcOffset)) << diff1;
+      if (bits <= diff2) {
+        goto last;
+      }
+      val |= *(--src) >> diff2;
     }
-    val |= *tgt & ~UINTW_MAX(tgtOffset);
-    for (bits += 64 - tgtOffset; bits > 64; bits -= 64) {
+    while (bits > 64) {
       *tgt-- = val;
+      bits -= 64;
       val = *src << diff1;
-      val |= *--src >> diff2;
+      if (bits <= diff2) { goto last; }
+      val |= *(--src) >> diff2;
     }
+  last:
     const uint64_t mask = UINTW_MAX(64 - bits);
     *tgt &= mask;
     *tgt |= val & ~mask;
   }
+
+
+  // inline void mvBitsFwd_DiffOffs1(const uint64_t * src, uint8_t srcOffset, uint64_t * tgt, uint8_t tgtOffset, uint64_t bits) {
+  //   assert(srcOffset != tgtOffset);
+  //   assert(srcOffset <= 63);
+  //   assert(tgtOffset <= 63);
+  //   uint8_t diff1, diff2;
+  //   uint64_t val = *src & UINTW_MAX(srcOffset);
+  //   if (srcOffset > tgtOffset) {
+  //     diff2 = srcOffset - tgtOffset;
+  //     diff1 = 64 - diff2;
+  //     val >>= diff2;
+  //   } else {
+  //     diff1 = tgtOffset - srcOffset;
+  //     diff2 = 64 - diff1;
+  //     val <<= diff1;
+  //     val |= *--src >> diff2;
+  //   }
+  //   val |= *tgt & ~UINTW_MAX(tgtOffset);
+  //   for (bits += 64 - tgtOffset; bits > 64; bits -= 64) {
+  //     *tgt-- = val;
+  //     val = *src << diff1;
+  //     val |= *--src >> diff2;
+  //   }
+  //   const uint64_t mask = UINTW_MAX(64 - bits);
+  //   *tgt &= mask;
+  //   *tgt |= val & ~mask;
+  // }
 
 
   inline void mvBitsBwd_SameOffs(const uint64_t * src, uint64_t * tgt, uint8_t offset, uint64_t bits) {
@@ -208,6 +256,11 @@ namespace bits{
 
   inline void mvBitsFwd_SameOffs(const uint64_t * src, uint64_t * tgt, uint8_t offset, uint64_t bits) {
     assert(offset <= 63);
+    if (offset == 0) {
+      offset = 64;
+      --src;
+      --tgt;
+    }
     const uint64_t mask1 = UINTW_MAX(offset);
     uint64_t val = *src & mask1;
     val |= *tgt & ~mask1;
