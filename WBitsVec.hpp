@@ -1,12 +1,12 @@
 /**
- * @file WBitsArray.hpp
+ * @file WBitsVec.hpp
  * @brief Packed array. Unsigned integers of w bits are packed into uint64_t array.
  * @author Tomohiro I
  * @date 2017-01-24
  */
 
-#ifndef INCLUDE_GUARD_WBitsArray
-#define INCLUDE_GUARD_WBitsArray
+#ifndef INCLUDE_GUARD_WBitsVec
+#define INCLUDE_GUARD_WBitsVec
 
 #include <stdint.h> // include uint64_t etc.
 #include <assert.h>
@@ -19,30 +19,30 @@
 #include "BitsUtil.hpp"
 #include "MemUtil.hpp"
 
-class WBitsArray;
+class WBitsVec;
 
-class WBitsArrayIterator :
+class WBitsVecIterator :
   public std::iterator<std::input_iterator_tag, uint64_t>
 {
-  friend WBitsArray; // To use private constructors of WBitsArrayIterator in WBitsArray
+  friend WBitsVec; // To use private constructors of WBitsVecIterator in WBitsVec
 
   uint64_t * const array_;
   uint64_t pos_;
   const uint8_t w_;
 
 private:
-  //// Called by WBitsArray
-  WBitsArrayIterator (uint64_t * array, uint64_t pos, uint8_t w) noexcept
+  //// Called by WBitsVec
+  WBitsVecIterator (uint64_t * array, uint64_t pos, uint8_t w) noexcept
     : array_(array), pos_(pos), w_(w)
   {}
 
 public:
   //// copy
-  WBitsArrayIterator(const WBitsArrayIterator & itr) noexcept = default;
-  WBitsArrayIterator& operator=(const WBitsArrayIterator & itr) noexcept = default;
+  WBitsVecIterator(const WBitsVecIterator & itr) noexcept = default;
+  WBitsVecIterator& operator=(const WBitsVecIterator & itr) noexcept = default;
   //// move
-  WBitsArrayIterator(WBitsArrayIterator && itr) noexcept = default;
-  WBitsArrayIterator& operator=(WBitsArrayIterator && itr) noexcept = default;
+  WBitsVecIterator(WBitsVecIterator && itr) noexcept = default;
+  WBitsVecIterator& operator=(WBitsVecIterator && itr) noexcept = default;
 
   uint64_t read() const {
     return bits::readWBits(array_, pos_, w_, bits::UINTW_MAX(w_));
@@ -59,93 +59,93 @@ public:
   }
 
   //// ++itr
-  WBitsArrayIterator & operator++() {
+  WBitsVecIterator & operator++() {
     pos_ += w_;
     return *this;
   }
 
   //// itr++
-  WBitsArrayIterator operator++(int) {
-    WBitsArrayIterator tmp(*this);
+  WBitsVecIterator operator++(int) {
+    WBitsVecIterator tmp(*this);
     ++(*this);
     return tmp;
   }
 
   //// --itr
-  WBitsArrayIterator & operator--() {
+  WBitsVecIterator & operator--() {
     pos_ -= w_;
     return *this;
   }
 
   //// itr--
-  WBitsArrayIterator operator--(int) {
-    WBitsArrayIterator tmp(*this);
+  WBitsVecIterator operator--(int) {
+    WBitsVecIterator tmp(*this);
     --(*this);
     return tmp;
   }
 
   //// *this != itr
-  bool operator!=(const WBitsArrayIterator & itr) {
+  bool operator!=(const WBitsVecIterator & itr) {
     return (pos_ != itr.pos_ || array_ != itr.array_);
   }
 
   //// *this == itr
-  bool operator==(const WBitsArrayIterator & itr) {
+  bool operator==(const WBitsVecIterator & itr) {
     return !(*this != itr);
   }
 
   ////// add more operators
   //// itr += diff
-  WBitsArrayIterator & operator+=(const difference_type diff) noexcept {
+  WBitsVecIterator & operator+=(const difference_type diff) noexcept {
     pos_ += static_cast<int64_t>(w_) * diff;
     return *this;
   }
 
   //// itr -= diff
-  WBitsArrayIterator & operator-=(const difference_type diff) noexcept {
+  WBitsVecIterator & operator-=(const difference_type diff) noexcept {
     *this += (-1 * diff);
     return *this;
   }
 
   //// itr + diff
-  friend WBitsArrayIterator operator+(const WBitsArrayIterator & itr, const difference_type diff) noexcept {
+  friend WBitsVecIterator operator+(const WBitsVecIterator & itr, const difference_type diff) noexcept {
     const int64_t pos = itr.pos_ + static_cast<int64_t>(itr.w_) * diff;
-    return WBitsArrayIterator(itr.array_, pos, itr.w_);
+    return WBitsVecIterator(itr.array_, pos, itr.w_);
   }
 
   //// diff + itr
-  friend WBitsArrayIterator operator+(const difference_type diff, const WBitsArrayIterator & itr) noexcept {
+  friend WBitsVecIterator operator+(const difference_type diff, const WBitsVecIterator & itr) noexcept {
     return itr + diff;
   }
 
   //// itr - diff
-  friend WBitsArrayIterator operator-(const WBitsArrayIterator & itr, const difference_type diff) noexcept {
+  friend WBitsVecIterator operator-(const WBitsVecIterator & itr, const difference_type diff) noexcept {
     return itr + (-1 * diff);
   }
 
   //// lhs - rhs
-  friend difference_type operator-(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
+  friend difference_type operator-(const WBitsVecIterator & lhs, const WBitsVecIterator & rhs) noexcept {
     assert(lhs.w_ == rhs.w_);
     return (static_cast<int64_t>(lhs.pos_) - static_cast<int64_t>(rhs.pos_)) / lhs.w_;
   }
 
   //// lhs < rhs
-  friend bool operator<(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
+  friend bool operator<(const WBitsVecIterator & lhs, const WBitsVecIterator & rhs) noexcept {
     return (lhs.pos_ < rhs.pos_ || lhs.array_ < rhs.array_);
   }
 
   //// rhs < lhs
-  friend bool operator>(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
+  friend bool operator>(const WBitsVecIterator & lhs, const WBitsVecIterator & rhs) noexcept {
     return (rhs < lhs);
   }
 
   //// lhs <= rhs
-  friend bool operator<=(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
+  friend bool operator<=(const WBitsVecIterator & lhs, const WBitsVecIterator & rhs) noexcept {
     return !(lhs > rhs);
   }
 
   //// lhs >= rhs
-  friend bool operator>=(const WBitsArrayIterator & lhs, const WBitsArrayIterator & rhs) noexcept {
+  friend bool operator>=(const WBitsVecIterator & lhs, const WBitsVecIterator & rhs) noexcept {
     return !(lhs < rhs);
   }
 
@@ -153,19 +153,19 @@ public:
      NOTE: src and tgt regions can overlap. In that case, src region might lose its original values.
    */
   //// mvWBA_SameW
-  friend void mvWBA_SameW(WBitsArrayIterator & src, WBitsArrayIterator & tgt, const uint64_t num) {
+  friend void mvWBA_SameW(WBitsVecIterator & src, WBitsVecIterator & tgt, const uint64_t num) {
     assert(src.w_ == tgt.w_);
     bits::mvBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num * src.w_);
   }
 
-  friend void mvWBA_DiffW(WBitsArrayIterator & src, WBitsArrayIterator & tgt, const uint64_t num) {
+  friend void mvWBA_DiffW(WBitsVecIterator & src, WBitsVecIterator & tgt, const uint64_t num) {
     for (uint64_t i = 0; i < num; ++i, ++src, ++tgt) {
       assert(src.read() <= bits::UINTW_MAX(tgt.w_));
       tgt.write(src.read());
     }
   }
 
-  friend void mvWBA(WBitsArrayIterator & src, WBitsArrayIterator & tgt, const uint64_t num) {
+  friend void mvWBA(WBitsVecIterator & src, WBitsVecIterator & tgt, const uint64_t num) {
     if (src.w_ == tgt.w_) {
       mvWBA_SameW(src, tgt, num);
     } else {
@@ -174,13 +174,13 @@ public:
   }
 
   ////
-  friend void mvWBA_SameW(WBitsArrayIterator && src, WBitsArrayIterator && tgt, const uint64_t num) {
+  friend void mvWBA_SameW(WBitsVecIterator && src, WBitsVecIterator && tgt, const uint64_t num) {
     assert(src.w_ == tgt.w_);
     bits::mvBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num * src.w_);
   }
 
   ////
-  friend void mvWBA_DistW(WBitsArrayIterator && src, WBitsArrayIterator && tgt, const uint64_t num) {
+  friend void mvWBA_DistW(WBitsVecIterator && src, WBitsVecIterator && tgt, const uint64_t num) {
     for (uint64_t i = 0; i < num; ++i, ++src, ++tgt) {
       assert(src.read() <= bits::UINTW_MAX(tgt.w_));
       tgt.write(src.read());
@@ -188,7 +188,7 @@ public:
   }
 
   //// move values
-  friend void mvWBA(WBitsArrayIterator && src, WBitsArrayIterator && tgt, const uint64_t num) {
+  friend void mvWBA(WBitsVecIterator && src, WBitsVecIterator && tgt, const uint64_t num) {
     if (src.w_ == tgt.w_) {
       mvWBA_SameW(src, tgt, num);
     } else {
@@ -200,7 +200,7 @@ public:
 
 
 
-class WBitsArray
+class WBitsVec
   : Uncopyable
 {
   uint64_t * array_;
@@ -210,10 +210,10 @@ class WBitsArray
   // static const int8_t realloc_param_ = 2; // realloc size is "realloc_param_" times larger than the current size
 
 public:
-  using iterator = WBitsArrayIterator;
+  using iterator = WBitsVecIterator;
 
 public:
-  WBitsArray(uint8_t w = 1, size_t capacity = 0) : array_(NULL), capacity_(capacity), size_(0), w_(w)
+  WBitsVec(uint8_t w = 1, size_t capacity = 0) : array_(NULL), capacity_(capacity), size_(0), w_(w)
   {
     assert(capacity_ <= bits::UINTW_MAX(58));
     assert(w_ <= 64);
@@ -224,24 +224,24 @@ public:
   }
 
 
-  ~WBitsArray()
+  ~WBitsVec()
   {
     free(array_);
   }
 
 
   //// get iterator
-  WBitsArray::iterator getItrAt(size_t idx) noexcept {
-    return WBitsArrayIterator(array_, idx * w_, w_);
+  WBitsVec::iterator getItrAt(size_t idx) noexcept {
+    return WBitsVecIterator(array_, idx * w_, w_);
   }
 
 
-  WBitsArray::iterator begin() noexcept {
+  WBitsVec::iterator begin() noexcept {
     return getItrAt(0);
   }
 
 
-  WBitsArray::iterator end() noexcept {
+  WBitsVec::iterator end() noexcept {
     return getItrAt(size_);
   }
 
@@ -277,7 +277,7 @@ public:
 
 
   size_t calcMemBytes() const noexcept {
-    return sizeof(*this) + (capacity_ * w_ / 64 + 1) * sizeof(uint64_t);
+    return sizeof(*this) + sizeof(uint64_t) * ((capacity_ * w_ + 63) / 64);
   }
 
 
