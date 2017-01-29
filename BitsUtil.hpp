@@ -4,6 +4,19 @@
 #include <stdint.h> // include uint64_t etc.
 #include <assert.h>
 
+
+// compile time constant bits functions
+namespace ctcbits{
+  constexpr uint64_t UINTW_MAX(uint8_t w) {
+    if (w >= 64) {
+      return UINT64_MAX;
+    } else {
+      return (UINT64_C(1) << w) - 1;
+    }
+  }
+}
+
+
 namespace bits{
   extern const uint64_t TBL_LoBits[];
 
@@ -24,12 +37,12 @@ namespace bits{
   }
 
 
-  inline uint8_t cnt64(uint64_t val) {
+  constexpr uint8_t cnt64(uint64_t val) {
     return __builtin_popcountll(val);
   }
 
 
-  inline uint8_t bitSize(uint64_t val) {
+  constexpr uint8_t bitSize(uint64_t val) {
     if(val) {
       return 64 - __builtin_clzll(val);
     }
