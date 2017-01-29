@@ -1,17 +1,17 @@
-#include "WBitsArray.hpp"
+#include "WBitsVec.hpp"
 
 
-#define TEST_CORR_
-#ifdef TEST_CORR_
+#define TEST_CORR_SIMPLE_
+#ifdef TEST_CORR_SIMPLE_
 #include <time.h>
 #include <iostream>
 #include <iomanip>
 #include "cmdline.h"
 
 //
-// $ g++ -O3 -DNDEBUG -Wall -std=c++14 -mavx -c BitsUtil.cpp
-// $ g++ -O3 -DNDEBUG -Wall -std=c++14 -mavx -o WBitsArray.out WBitsArray.cpp BitsUtil.o
-// $ ./WBitsArray.out -n 100
+// $ g++ -std=c++14 -march=native -O3 -DNDEBUG -W -Wall -Wno-deprecated -c BitsUtil.cpp
+// $ g++ -std=c++14 -march=native -O3 -DNDEBUG -W -Wall -Wno-deprecated -o WBitsVec.out WBitsVec.cpp BitsUtil.o
+// $ ./WBitsVec.out -n 100
 //
 int main(int argc, char *argv[])
 {
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 
   assert(num > 2);
 
-  WBitsArray wba[10];
+  WBitsVec wba[10];
 
   for (uint8_t i = 0, w = 6; w <= 58; ++i, w += 7) {
     wba[i].convert(w, num);
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
     std::cout << ", size / capacity_: " << wba[i].size() << " / " << wba[i].capacity() << std::endl;
   }
   //
-  std::cout << "copy between different wbArrays" << std::endl;
+  std::cout << "copy between different wbVecs" << std::endl;
   for (uint8_t i = 0, w = 6; w <= 58; ++i, w += 7) {
     if (i == 0) continue;
     std::cout << static_cast<uint32_t>(i) << ": from " << (int)(wba[i-1].getW()) << " to " << (int)(wba[i].getW()) << std::endl;
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
     std::cout << std::endl;
   }
   //
-  std::cout << "copy between different wbArrays" << std::endl;
+  std::cout << "copy between different wbVecs" << std::endl;
   wba[1].write(bits::UINTW_MAX(wba[1].getW()), num-1);
   for (uint8_t i = 0, w = 6; w <= 58; ++i, w += 7) {
     if (i == 0) continue;
@@ -167,8 +167,8 @@ int main(int argc, char *argv[])
 
   assert(num > 2);
 
-  WBitsArray wbArray(64, num);
-  wbArray.resize(num);
+  WBitsVec wbVec(64, num);
+  wbVec.resize(num);
 
   clock_t start, end;
   double sec;  
@@ -176,19 +176,19 @@ int main(int argc, char *argv[])
   std::cout << __FILE__ << " sequential read (itr): " << std::endl;
   for (uint8_t w = 6; w <= 58; w += 7) {
     w += dummy;
-    wbArray.resize(0);
-    wbArray.convert(w);
+    wbVec.resize(0);
+    wbVec.convert(w);
     const uint64_t valMask = (1ULL << w) - 1;
     uint64_t checksum0 = 0;
     for (uint64_t i = 0; i < num; ++i) {
       checksum0 += i & valMask;
     }
     for (uint64_t i = 0; i < num; ++i) { // write some values for checksum
-      wbArray.write(i & valMask, i);
+      wbVec.write(i & valMask, i);
     }
     uint64_t checksum = 0;
     start = clock();
-    auto itr = wbArray.begin();
+    auto itr = wbVec.begin();
     for (uint64_t i = 0; i < num; ++i, ++itr) {
       checksum += itr.read();
     }
@@ -204,10 +204,10 @@ int main(int argc, char *argv[])
   std::cout << __FILE__ << " sequential write (itr): " << std::endl;
   for (uint8_t w = 6; w <= 58; w += 7) {
     w += dummy;
-    wbArray.resize(0);
-    wbArray.convert(w);
+    wbVec.resize(0);
+    wbVec.convert(w);
     start = clock();
-    auto itr = wbArray.begin();
+    auto itr = wbVec.begin();
     for (uint64_t i = 0; i < num; ++i, ++itr) {
       itr.write(val);
     }
@@ -221,20 +221,20 @@ int main(int argc, char *argv[])
   std::cout << __FILE__ << " sequential read: " << std::endl;
   for (uint8_t w = 6; w <= 58; w += 7) {
     w += dummy;
-    wbArray.resize(0);
-    wbArray.convert(w);
+    wbVec.resize(0);
+    wbVec.convert(w);
     const uint64_t valMask = (1ULL << w) - 1;
     uint64_t checksum0 = 0;
     for (uint64_t i = 0; i < num; ++i) {
       checksum0 += i & valMask;
     }
     for (uint64_t i = 0; i < num; ++i) { // write some values for checksum
-      wbArray.write(i & valMask, i);
+      wbVec.write(i & valMask, i);
     }
     uint64_t checksum = 0;
     start = clock();
     for (uint64_t i = 0; i < num; ++i) {
-      checksum += wbArray.read(i);
+      checksum += wbVec.read(i);
     }
     end = clock();
     sec = (double)(end - start)/CLOCKS_PER_SEC;
@@ -248,11 +248,11 @@ int main(int argc, char *argv[])
   std::cout << __FILE__ << " sequential write: " << std::endl;
   for (uint8_t w = 6; w <= 58; w += 7) {
     w += dummy;
-    wbArray.resize(0);
-    wbArray.convert(w);
+    wbVec.resize(0);
+    wbVec.convert(w);
     start = clock();
     for (uint64_t i = 0; i < num; ++i) {
-      wbArray.write(val, i);
+      wbVec.write(val, i);
     }
     end = clock();
     sec = (double)(end - start)/CLOCKS_PER_SEC;
@@ -265,23 +265,23 @@ int main(int argc, char *argv[])
   std::cout << __FILE__ << " random read: " << std::endl;
   for (uint8_t w = 6; w <= 58; w += 7) {
     w += dummy;
-    wbArray.resize(0);
-    wbArray.convert(w);
+    wbVec.resize(0);
+    wbVec.convert(w);
     const uint64_t valMask = (1ULL << w) - 1;
     uint64_t checksum0 = 0;
     for (uint64_t i = 0; i < num; ++i) { // write some values for checksum
-      wbArray.write(i & valMask, i);
+      wbVec.write(i & valMask, i);
     }
     for (uint64_t i = 0, pos = jump & idxMask; i < num; ++i, pos = (pos + jump) & idxMask) {
-      checksum0 += wbArray.read(pos);
+      checksum0 += wbVec.read(pos);
     }
     for (uint64_t i = 0; i < num; ++i) { // write some values for checksum
-      wbArray.write(i & valMask, i);
+      wbVec.write(i & valMask, i);
     }
     uint64_t checksum = 0;
     start = clock();
     for (uint64_t i = 0, pos = jump & idxMask; i < num; ++i, pos = (pos + jump) & idxMask) {
-      checksum += wbArray.read(pos);
+      checksum += wbVec.read(pos);
     }
     end = clock();
     sec = (double)(end - start)/CLOCKS_PER_SEC;
@@ -295,11 +295,11 @@ int main(int argc, char *argv[])
   std::cout << __FILE__ << " random write: " << std::endl;
   for (uint8_t w = 6; w <= 58; w += 7) {
     w += dummy;
-    wbArray.resize(0);
-    wbArray.convert(w);
+    wbVec.resize(0);
+    wbVec.convert(w);
     start = clock();
     for (uint64_t i = 0, pos = jump & idxMask; i < num; ++i, pos = (pos + jump) & idxMask) {
-      wbArray.write(val, pos);
+      wbVec.write(val, pos);
     }
     end = clock();
     sec = (double)(end - start)/CLOCKS_PER_SEC;
