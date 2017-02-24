@@ -492,9 +492,9 @@ namespace bits
    * @attention When src-region and tgt-region overlap, the overlapped part of src-region is overwritten.
    *            The other part of src-region is not changed.
    * @note
-   *  The process will be forwarded to one of the four functions based on the following two (orthogonal) criteria.
-   *  - move bits forwardly or backwardly.
-   *  - offsets are same or not.
+   * The process will be forwarded to one of the four functions based on the following two (orthogonal) criteria.
+   * - move bits forwardly or backwardly.
+   * - offsets are same or not.
    */
   inline void mvBits
   (
