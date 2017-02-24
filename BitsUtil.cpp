@@ -1,7 +1,7 @@
 #include "BitsUtil.hpp"
 
 namespace bits{
-  const uint64_t TBL_LoBits[] = {
+  const uint64_t TBL_LoSet[] = {
     0x0000000000000000ULL,
     0x0000000000000001ULL,
     0x0000000000000003ULL,
@@ -69,9 +69,7 @@ namespace bits{
     0xffffffffffffffffULL,
   };
 
-  const uint64_t * const TBL_LoBitsPlus = TBL_LoBits + 1;
-
-  const uint8_t TBL_PopCnt8[] = { // TBL_PopCnt8 and TBL_Sel8
+  const uint8_t TBL_Sel8[] = {
     0,  1,  1,  2,  1,  2,  2,  3,
     1,  2,  2,  3,  2,  3,  3,  4,
     1,  2,  2,  3,  2,  3,  3,  4,
@@ -105,7 +103,7 @@ namespace bits{
     4,  5,  5,  6,  5,  6,  6,  7,
     5,  6,  6,  7,  6,  7,  7,  8,
     // up to here TBL_PopCnt8
-    // below, TBL_Sel8_0base
+    // below used for select query
     8,  0,  1,  0,  2,  0,  1,  0,
     3,  0,  1,  0,  2,  0,  1,  0,
     4,  0,  1,  0,  2,  0,  1,  0,
@@ -364,7 +362,5 @@ namespace bits{
     8,  8,  8,  8,  8,  8,  8,  7,
   };
 
-  const uint8_t * const TBL_Sel8 = TBL_PopCnt8;
-
-  const uint8_t * const TBL_Sel8_0base = TBL_PopCnt8 + 0x100;
+  const uint8_t * const TBL_Cnt8 = TBL_Sel8;
 }

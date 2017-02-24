@@ -6,17 +6,17 @@
  */
 /*!
  * @file BitsUtil.hpp
- * @brief useful functions to work on bits.
+ * @brief Useful functions to work on bits.
  * @author Tomohiro I
  * @date 2017-02-23
  * 
  * @note
- *  For a uint64_t array words[0..n) of length n, let words[[0..64*n)) denote a bit vector defined as follows:
- *  The i-th bit of words[[0..64*n)) is the (i%64)-th (low significant) bit of words[i/64].
- *  We use the following terminology:
- *  - bit-pos: position (0base) in a bit vector.
- *  - bit-region: sub-vector of a bit vector.
- *  - offset: bit-pos in a word, i.e., offset is in [0, 64).
+ * For a uint64_t array words[0..n) of length n, let words[[0..64*n)) denote a bit vector defined as follows:
+ * The i-th bit of words[[0..64*n)) is the (i%64)-th (low significant) bit of words[i/64].
+ * We use the following terminology:
+ * - bit-pos: position (0base) in a bit vector.
+ * - bit-region: sub-vector of a bit vector.
+ * - offset: bit-pos in a word, i.e., offset is in [0, 64).
  */
 #ifndef INCLUDE_GUARD_BitsUtil
 #define INCLUDE_GUARD_BitsUtil
@@ -27,16 +27,16 @@
 
 /*!
  * @namespace ctcbits
- * @brief bits functions specialized to run in compile time.
+ * @brief Bits functions specialized to run in compile time.
  */
 namespace ctcbits
 {
   /*!
-   * @brief compile time specialized version of bits::UINTW_MAX.
+   * @brief Compile time specialized version of bits::UINTW_MAX.
    */
   constexpr uint64_t UINTW_MAX
   (
-   uint8_t w //!< bit-width in [0, 64].
+   uint8_t w //!< Bit-width in [0, 64].
    ) {
     if (w >= 64) {
       return UINT64_MAX;
@@ -49,36 +49,46 @@ namespace ctcbits
 
 /*!
  * @namespace bits
- * @brief useful functions to work on bits.
+ * @brief Useful functions to work on bits.
  */
 namespace bits
 {
-  extern const uint64_t TBL_LoBits[];
+  /*!
+   * @brief Given w in [0, 64], TBL_LoSet[w] is the 64bit uint such that 'w' low significant bits are raised and the other bits not.
+   */
+  extern const uint64_t TBL_LoSet[65];
 
-  extern const uint64_t * const TBL_LoBitsPlus;
+  /*!
+   * @brief Table to implement select queries for 8bit uint.
+   * @note
+   * Given 8bit uint 'v' and 'rank' in [1, 8],
+   * TBL_Sel8[(rank << 8) + v] returns the bit-pos where the 'rank'-th 1 appears in v[[0..8]].
+   */
+  extern const uint8_t TBL_Sel8[256 * 9];
 
-  extern const uint8_t TBL_PopCnt8[];
-
-  extern const uint8_t * const TBL_Sel8;
-
-  extern const uint8_t * const TBL_Sel8_0base;
+  /*!
+   * @brief Table to implement popcount for 8bit uint (the first 256 entries of TBL_Sel8 are used).
+   * @note
+   * Given 8bit uint 'v', TBL_Cnt8[v] returns the popcount(v).
+   */
+  extern const uint8_t * const TBL_Cnt8;
 
 
   /*!
-   * @brief return the maximum 64bit uint with 'w' bits.
+   * @brief Return the maximum 64bit uint with 'w' bits.
    */
   inline uint64_t UINTW_MAX
   (
-   uint8_t w //!< bit-width in [0, 64].
+   uint8_t w //!< Bit-width in [0, 64].
    ) {
     assert(w <= 64);
 
-    return TBL_LoBits[w];
+    return TBL_LoSet[w];
   }
 
 
   /*!
-   * @brief return popcount(val).
+   * @brief Return popcount(val).
    */
   constexpr uint8_t cnt64
   (
@@ -89,7 +99,7 @@ namespace bits
 
 
   /*!
-   * @brief return # of bits needed to represent 'val' (where we think that 0 needs 1 bit).
+   * @brief Return # of bits needed to represent 'val' (where we think that 0 needs 1 bit).
    */
   constexpr uint8_t bitSize
   (
@@ -103,7 +113,7 @@ namespace bits
 
 
   /*!
-   * @brief return bit-pos of the 'rank'-th 1 in 'word'.
+   * @brief Return bit-pos of the 'rank'-th 1 in 'word'.
    */
   inline uint8_t sel64
   (
@@ -111,11 +121,11 @@ namespace bits
    uint64_t rank //!< in [1, 64].
    ) {
     assert(1 <= rank && rank <= 64);
-    assert(cnt64(word) >= rank); //! @pre word must contain at least 'rank' 1's.
+    assert(cnt64(word) >= rank); //! @pre 'word' must contain at least 'rank' 1's.
 
     for (int j = 0; j < 7; ++j) {
       const uint8_t x = word & 0xff;
-      const uint64_t c = TBL_PopCnt8[x];
+      const uint64_t c = TBL_Cnt8[x];
       if (rank <= c) {
         return j*8 + TBL_Sel8[(rank<<8) + x];
       }
@@ -127,7 +137,7 @@ namespace bits
 
 
   /*!
-   * @brief return bit-pos of the 'rank'-th 1 in words[0..].
+   * @brief Return bit-pos of the 'rank'-th 1 in words[0..].
    * @pre 'rank'-th 1 must be found before going out of bounds.
    */
   inline uint64_t sel
@@ -147,13 +157,13 @@ namespace bits
 
 
   /*!
-   * @brief return # of 1's in words[[0..i]].
-   * @pre the bit-region must not be out of bounds.
+   * @brief Return # of 1's in words[[0..i]].
+   * @pre The bit-region must not be out of bounds.
    */
   inline uint64_t cnt
   (
-   const uint64_t * words, //!< pointer to uint64_t array
-   uint64_t i //!< bit-pos specifying the last position of the bit-region.
+   const uint64_t * words, //!< Pointer to uint64_t array
+   uint64_t i //!< Bit-pos specifying the last position of the bit-region.
    ) {
     uint64_t ret = 0;
     while (i >= 64) {
@@ -166,15 +176,15 @@ namespace bits
 
 
   /*!
-   * @brief read 'w'-bits written in the bit-region beginning at p[[offset..]].
-   * @return value represented by p[[offset..offset+w)).
-   * @pre the bit-region must not be out of bounds.
+   * @brief Read 'w'-bits written in the bit-region beginning at p[[offset..]].
+   * @return Value represented by p[[offset..offset+w)).
+   * @pre The bit-region must not be out of bounds.
    */
   inline uint64_t readWBitsHead
   (
-   const uint64_t * p, //!< pointer to words that contains the beginning of the bit-region.
+   const uint64_t * p, //!< Pointer to words that contains the beginning of the bit-region.
    const uint8_t offset, //!< in [0, 64).
-   const uint8_t w, //!< bit-width in [0, 64].
+   const uint8_t w, //!< Bit-width in [0, 64].
    const uint64_t mask //!< UINTW_MAX(w).
    ) {
     assert(offset < 64);
@@ -191,15 +201,15 @@ namespace bits
 
 
   /*!
-   * @brief read 'w'-bits written in the bit-region beginning at p[[bitPos..]].
-   * @return value represented by p[[bitPos..bitPos+w)).
-   * @pre the bit-region must not be out of bounds.
+   * @brief Read 'w'-bits written in the bit-region beginning at p[[bitPos..]].
+   * @return Value represented by p[[bitPos..bitPos+w)).
+   * @pre The bit-region must not be out of bounds.
    */
   inline uint64_t readWBits
   (
-   const uint64_t * p, //!< pointer to words.
-   const uint64_t bitPos, //!< bit-pos specifying the beginning position of the bit-region
-   const uint8_t w, //!< bit-width in [0, 64].
+   const uint64_t * p, //!< Pointer to words.
+   const uint64_t bitPos, //!< Bit-pos specifying the beginning position of the bit-region
+   const uint8_t w, //!< Bit-width in [0, 64].
    const uint64_t mask //!< UINTW_MAX(w).
    ) {
     assert(w <= 64);
@@ -217,7 +227,7 @@ namespace bits
 
 
   /*!
-   * @brief simplified version of ::readWBitsHead. This function does not read inter-words bits.
+   * @brief Simplified version of ::readWBitsHead that can be used when reading bits in a single word.
    */
   inline uint64_t readWBitsInWord
   (
@@ -233,15 +243,15 @@ namespace bits
 
 
   /*!
-   * @brief write 'w'-bit value 'val' to the bit-region beginning at p[[offset..]].
-   * @pre the bit-region must not be out of bounds.
+   * @brief Write 'w'-bit value 'val' to the bit-region beginning at p[[offset..]].
+   * @pre The bit-region must not be out of bounds.
    */
   inline void writeWBitsHead
   (
    const uint64_t val, //!< in [0, 2^w).
-   uint64_t * p, //!< pointer to words that contains the beginning of the bit-region.
+   uint64_t * p, //!< Pointer to words that contains the beginning of the bit-region.
    const uint8_t offset, //!< in [0, 64).
-   const uint8_t w, //!< bit-width in [0, 64].
+   const uint8_t w, //!< Bit-width in [0, 64].
    const uint64_t mask //!< UINTW_MAX(w).
    ) {
     assert(offset < 64);
@@ -260,15 +270,15 @@ namespace bits
 
 
   /*!
-   * @brief write 'w'-bit value 'val' to the bit-region beginning at p[[bitPos..]].
-   * @pre the bit-region must not be out of bounds.
+   * @brief Write 'w'-bit value 'val' to the bit-region beginning at p[[bitPos..]].
+   * @pre The bit-region must not be out of bounds.
    */
   inline void writeWBits
   (
    const uint64_t val, //!< in [0, 2^w).
-   uint64_t * p, //!< p pointer to words.
-   const uint64_t bitPos, //!< bit-pos.
-   const uint8_t w, //!< w bit-width in [0, 64].
+   uint64_t * p, //!< Pointer to words.
+   const uint64_t bitPos, //!< Bit-pos.
+   const uint8_t w, //!< Bit-width in [0, 64].
    const uint64_t mask //!< UINTW_MAX(w).
    ) {
     assert(w <= 64);
@@ -295,7 +305,7 @@ namespace bits
    uint8_t tgtOffset,
    uint64_t bitLen
    ) {
-    assert(srcOffset != tgtOffset); //! @pre srcOffset and tgtOffset are different.
+    assert(srcOffset != tgtOffset); //! @pre 'srcOffset' and 'tgtOffset' are different.
     assert(srcOffset <= 63);
     assert(tgtOffset <= 63);
     assert(src >= tgt); //! @pre 'position of src-region' >= 'position of tgt-region'.
@@ -338,7 +348,7 @@ namespace bits
    uint8_t tgtOffset,
    uint64_t bitLen
    ) {
-    assert(srcOffset != tgtOffset); //! @pre srcOffset and tgtOffset are different.
+    assert(srcOffset != tgtOffset); //! @pre 'srcOffset' and 'tgtOffset' are different.
     assert(srcOffset <= 63);
     assert(tgtOffset <= 63);
     assert(src < tgt || (src == tgt && srcOffset < tgtOffset)); //! @pre 'position of src-region' < 'position of tgt-region'.
@@ -387,7 +397,7 @@ namespace bits
    uint8_t offset,
    uint64_t bitLen
    ) {
-    assert(offset <= 63); //! @pre offset in [0..64).
+    assert(offset <= 63); //! @pre 'offset' in [0..64).
     assert(src >= tgt); //! @pre 'position of src-region' >= 'position of tgt-region'.
 
     const uint64_t mask1 = UINTW_MAX(offset);
@@ -410,7 +420,7 @@ namespace bits
    uint8_t offset,
    uint64_t bitLen
    ) {
-    assert(offset <= 63); //! @pre offset in [0..64).
+    assert(offset <= 63); //! @pre 'offset' in [0..64).
     assert(src < tgt); //! @pre 'position of src-region' < 'position of tgt-region'.
 
     if (offset == 0) {
@@ -432,8 +442,8 @@ namespace bits
 
 
   /*!
-   * @brief move bits backwardly from src-region to tgt-region (see also ::mvBits).
-   * @attention this function should be used when bits are moved backwardly, i.e., 'position of src-region' >= 'position of tgt-region'.
+   * @brief Move bits backwardly from src-region to tgt-region (see also ::mvBits).
+   * @attention This function should be used when bits are moved backwardly, i.e., 'position of src-region' >= 'position of tgt-region'.
    */
   inline void mvBitsBwd
   (
@@ -454,10 +464,10 @@ namespace bits
 
 
   /*!
-   * @brief move bits forwardly from src-region to tgt-region (see also ::mvBits).
-   * @attention this function should be used when bits are moved forwardly, i.e., 'position of src-region' < 'position of tgt-region'.
-   * @attention src-region is designated by the bit-region *ending (excluded)* at 'srcOffset' bit of 'src' and of length 'bitLen'.
-   *            tgt-region is similarly defined.
+   * @brief Move bits forwardly from src-region to tgt-region (see also ::mvBits).
+   * @attention This function should be used when bits are moved forwardly, i.e., 'position of src-region' < 'position of tgt-region'.
+   * @attention Src-region is designated by the bit-region *ending (excluded)* at 'srcOffset' bit of 'src' and of length 'bitLen'.
+   *            Tgt-region is similarly defined.
    */
   inline void mvBitsFwd
   (
@@ -478,11 +488,11 @@ namespace bits
 
 
   /*!
-   * @brief move bits from src-region to tgt-region.
-   * @attention when src-region and tgt-region overlap, the overlapped part of src-region is overwritten.
+   * @brief Move bits from src-region to tgt-region.
+   * @attention When src-region and tgt-region overlap, the overlapped part of src-region is overwritten.
    *            The other part of src-region is not changed.
    * @note
-   *  the process will be forwarded to one of the four functions based on the following two (orthogonal) criteria.
+   *  The process will be forwarded to one of the four functions based on the following two (orthogonal) criteria.
    *  - move bits forwardly or backwardly.
    *  - offsets are same or not.
    */
@@ -503,8 +513,6 @@ namespace bits
     }
   }
 }
-
-
 
 
 #endif
