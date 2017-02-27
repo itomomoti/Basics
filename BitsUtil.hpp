@@ -11,12 +11,12 @@
  * @date 2017-02-23
  * 
  * @note
- * For a uint64_t array words[0..n) of length n, let words[[0..64*n)) denote a bit vector defined as follows:
- * The i-th bit of words[[0..64*n)) is the (i%64)-th (low significant) bit of words[i/64].
- * We use the following terminology:
- * - bit-pos: position (0base) in a bit vector.
- * - bit-region: sub-vector of a bit vector.
- * - offset: bit-pos in a word, i.e., offset is in [0, 64).
+ *   For a uint64_t array words[0..n) of length n, let words[[0..64*n)) denote a bit vector defined as follows:
+ *   The i-th bit of words[[0..64*n)) is the (i%64)-th (low significant) bit of words[i/64].
+ *   We use the following terminology:
+ *   - bit-pos: position (0base) in a bit vector.
+ *   - bit-region: sub-vector of a bit vector.
+ *   - offset: bit-pos in a word, i.e., offset is in [0, 64).
  */
 #ifndef INCLUDE_GUARD_BitsUtil
 #define INCLUDE_GUARD_BitsUtil
@@ -61,15 +61,15 @@ namespace bits
   /*!
    * @brief Table to implement select queries for 8bit uint.
    * @note
-   * Given 8bit uint 'v' and 'rank' in [1, 8],
-   * TBL_Sel8[(rank << 8) + v] returns the bit-pos where the 'rank'-th 1 appears in v[[0..8]].
+   *   Given 8bit uint 'v' and 'rank' in [1, 8],
+   *   TBL_Sel8[(rank << 8) + v] returns the bit-pos where the 'rank'-th 1 appears in v[[0..8]].
    */
   extern const uint8_t TBL_Sel8[256 * 9];
 
   /*!
    * @brief Table to implement popcount for 8bit uint (the first 256 entries of TBL_Sel8 are used).
    * @note
-   * Given 8bit uint 'v', TBL_Cnt8[v] returns the popcount(v).
+   *   Given 8bit uint 'v', TBL_Cnt8[v] returns the popcount(v).
    */
   extern const uint8_t * const TBL_Cnt8;
 
@@ -88,6 +88,17 @@ namespace bits
 
 
   /*!
+   * @brief Return if 'val' is power of two.
+   */
+  constexpr bool isPowerOfTwo
+  (
+   uint64_t val
+   ) {
+    return !(val & (val - 1));
+  }
+
+
+  /*!
    * @brief Return popcount(val).
    */
   constexpr uint8_t cnt64
@@ -99,7 +110,7 @@ namespace bits
 
 
   /*!
-   * @brief Return # of bits needed to represent 'val' (where we think that 0 needs 1 bit).
+   * @brief Return Num of bits needed to represent 'val' (where we think that 0 needs 1 bit).
    */
   constexpr uint8_t bitSize
   (
@@ -492,9 +503,9 @@ namespace bits
    * @attention When src-region and tgt-region overlap, the overlapped part of src-region is overwritten.
    *            The other part of src-region is not changed.
    * @note
-   * The process will be forwarded to one of the four functions based on the following two (orthogonal) criteria.
-   * - move bits forwardly or backwardly.
-   * - offsets are same or not.
+   *   The process will be forwarded to one of the four functions based on the following two (orthogonal) criteria.
+   *   - move bits forwardly or backwardly.
+   *   - offsets are same or not.
    */
   inline void mvBits
   (
