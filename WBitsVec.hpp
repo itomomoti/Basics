@@ -28,9 +28,12 @@ class WBitsVec;
 
 /*!
  * @brief Iterator for WBitsVec.
+ * @attention
+ *   An iterator is invalidated without notification when WBitsVec object is destroyed or reallocated.
+ *   Using invalidated iterator would cause problems.
  * @note
- * Unfortunately packed vector is only qualified to be input_iterator due to the current design of STL.
- * (see e.g. http://www.boost.org/doc/libs/1_63_0/libs/iterator/doc/index.html).
+ *   Unfortunately packed vector is only qualified to be input_iterator due to the current design of STL.
+ *   (see e.g. http://www.boost.org/doc/libs/1_63_0/libs/iterator/doc/index.html).
  */
 class WBitsVecIterator :
   public std::iterator<std::input_iterator_tag, uint64_t>
@@ -211,7 +214,7 @@ public:
    * @attention When src-region and tgt-region overlap, the overlapped part of src-region is overwritten.
    *            The other part of src-region is not changed.
    * @note
-   * The bit-width of src and tgt can be different.
+   *   The bit-width of src and tgt can be different.
    */
   friend void mvWBA
   (
@@ -255,8 +258,10 @@ public:
 
 /*!
  * @brief W-bits packed vector. Bit-width 'w' and capacity can be changed dynamically.
- * @note
- * For technical reason, capacity is limited to '2^58 - 1' so that 'capacity * w' does not overflow.
+ * @attention
+ *   For technical reason, capacity is limited to '2^58 - 1' so that 'capacity * w' does not overflow.
+ * @attention
+ *   We prohibit to copy an object of WBitsVec. Use smart pointer to distribute an objcet.
  */
 class WBitsVec
   : Uncopyable
@@ -276,11 +281,11 @@ public:
    size_t capacity = 0 //!< Initial capacity.
    ) : array_(NULL), capacity_(capacity), size_(0), w_(w) {
     assert(capacity_ <= bits::UINTW_MAX(58));
-    assert(0 < w_ && w_ <= 64);
+    assert(0 < w && w <= 64);
 
     if (capacity > 0) {
       const size_t len = (capacity_ * w_ + 63) / 64; // +63 for roundup
-      array_ = memutil::mymalloc<uint64_t>(len);
+      array_ = memutil::malloc_AbortOnFail<uint64_t>(len);
     }
   }
 
@@ -338,7 +343,7 @@ public:
    */
   void write
   (
-   const uint64_t val, //!< in [0, 2^w_).
+   const uint64_t val, //!< in [0, 2^{w_}).
    const size_t idx //!< in [0, capacity_).
    ) {
     assert(idx < capacity_);
@@ -381,7 +386,7 @@ public:
 
 
   /*!
-   * @brief Clear vector. It only changes 'size_' to zero.
+   * @brief Clear vector. It only changes size to zero.
    */
   void clear() noexcept {
     size_ = 0;
@@ -391,9 +396,9 @@ public:
   /*!
    * @brief Reserve enough space to store 'newCapacity_ * w_' bits.
    * @note
-   * This function does not shrink 'capacity_'
-   * If 'newCapacity > capacity_', expand 'array_' to store 'newCapacity * w_' bits.
-   * 'size_' is unchanged.
+   *   This function does not shrink 'capacity_'
+   *   If 'newCapacity > capacity_', expand 'array_' to store 'newCapacity * w_' bits.
+   *   'size_' is unchanged.
   */
   void reserve
   (
@@ -404,7 +409,7 @@ public:
     if (newCapacity > capacity_) {
       capacity_ = newCapacity;
       const size_t len = (capacity_ * w_ + 63) / 64; // +63 for roundup
-      memutil::myrealloc<uint64_t>(array_, len);
+      memutil::realloc_AbortOnFail<uint64_t>(array_, len);
     }
   }
 
@@ -412,8 +417,8 @@ public:
   /*!
    * @brief Resize 'size_' to 'newSize'. It expands 'array_' if needed.
    * @note
-   * This function does not shrink 'capacity_'
-   * If 'newSize > capacity_', expand 'array_' by calling WBitsVec::reserve.
+   *   This function does not shrink 'capacity_'
+   *   If 'newSize > capacity_', expand 'array_' by calling WBitsVec::reserve.
   */
   void resize
   (
@@ -429,7 +434,7 @@ public:
 
 
   /*!
-   * @brief Variant of ::resize: If 'newSize > capacity_', it just returns false. Otherwise resize and return true.
+   * @brief Variant of WBitsVec::resize: If 'newSize > capacity_', it just returns false. Otherwise resize and return true.
    */
   bool resizeWithoutReserve
   (
@@ -446,47 +451,65 @@ public:
 
 
   /*!
-   * @brief Shrink vector to fit current bit-length.
+   * @brief Shrink vector to fit current bit-length in use.
    */
   void shrink_to_fit() {
     if (size_ > 0) {
       const size_t newLen = (size_ * w_ + 63) / 64; // +63 for roundup
-      memutil::myrealloc<uint64_t>(array_, newLen);
+      memutil::realloc_AbortOnFail<uint64_t>(array_, newLen);
     } else {
-      memutil::myfree(array_);
+      memutil::safefree(array_);
     }
     capacity_ = size_;
   }
 
 
   /*!
-   * @brief Change w_ and/or capacity_.
+   * @brief Change 'w_', and values accordingly. Give optional arguments ('minCapacity', 'doShrink') to control reallocation of array.
    * @note
-   * This function will do the following two tasks:
-   * 1. convert values of w_ bits to those of w bits, and renew w_.
-   *    NOTE: If w < w_, the w_ - w most significant bits for each value will be discarded.
-   * 2. realloc 'array_' if needed (or we can give 'newCapacity' to expand 'capacity_' explicitly).
-   *    NOTE: 'array_' will never shrink.
+   *   This function will do the following two tasks:
+   *   1. Convert values of w_ bits to those of 'w' bits, and renew 'w_'.
+   *      Note that If 'w < w_', the 'w_ - w' most significant bits for each value will be discarded.
+   *   2. Realloc 'array_' if needed/required.
+   *      If doShrink is true, 'array_' is reallocated to fit 'max(size_, minCapacity)' 'w'-bits uints.
+   *      Otherwise, reallocation is executed only when array expands.
+   * @note
+   *   'size_' will not change.
    *
-   * @note
-   * TIPS: We do not provide a function to change only w_ (i.e., the setter for w_)
-   *       because most of the case changing w_ would be accompanied by conversion (and reallocation if needed).
-   *       If you want to change w_ but do not want to convert nor realloc, do the followings:
-   *       WBAObj.clear();
-   *       WBAObj.convert(w);
+   * @par TIPS
+   *   We do not provide a function to change only 'w_' (i.e., the setter for 'w_')
+   *   because most of the case changing 'w_' would be accompanied by conversion (and reallocation if needed).
+   *   If you want to change 'w_' but do not want to convert nor realloc, do the followings:
+   *   @code
+   *     WBAObj.clear();
+   *     WBAObj.convert(w);
+   *   @endcode
    */
-  void convert(const uint8_t w, size_t newCapacity = 0) {
-    newCapacity = std::max(capacity_, newCapacity);
+  void convert
+  (
+   const uint8_t w, //!< New bit-width.
+   size_t minCapacity = 0, //!< Minimum support for capacity (default = 0, which turns into 'size_').
+   bool doShrink = false //!< If true, 'array_' is reallocated to fit max(size_, minCapacity) w-bits uints.
+   ) {
+    assert(0 < w && w <= 64);
+    assert(minCapacity <= bits::UINTW_MAX(58));
+
+    if (minCapacity < size_) {
+      minCapacity = size_;
+    }
     const size_t oldLen = (capacity_ * w_ + 63) / 64; // +63 for roundup
-    const size_t newLen = (newCapacity * w + 63) / 64; // +63 for roundup
-    capacity_ = newCapacity;
-    if (newLen > oldLen) {
-      memutil::myrealloc<uint64_t>(array_, newLen);
+    const size_t minLen = (minCapacity * w + 63) / 64; // +63 for roundup
+    if (doShrink || minLen > oldLen) {
+      memutil::realloc_AbortOnFail(array_, minLen);
+      capacity_ = minCapacity;
+    } else {
+      capacity_ = (oldLen * 64) / w;
     }
+
     if (w == w_) {
-      return; // do nothing
+      return; // Do nothing
     }
-    // convert the values in array
+    // Convert the values in array
     if (w > w_) {
       for (uint64_t i = this->size() - 1; i != UINT64_MAX; --i) {
         bits::writeWBits(this->read(i), array_, i * w, w, bits::UINTW_MAX(w));
@@ -496,10 +519,11 @@ public:
         bits::writeWBits(this->read(i) & bits::UINTW_MAX(w), array_, i * w, w, bits::UINTW_MAX(w));
       }
     }
-    w_ = w; // set w_
+    w_ = w;
   }
 
 
+public:
   /*!
    * @brief Get current bit-width of each element.
    */

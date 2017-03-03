@@ -5,42 +5,81 @@
 #include <assert.h>
 #include <iostream>
 
+
+/*!
+ * @namespace memutil
+ * @brief Utilities for memory allocation.
+ */
 namespace memutil
 {
+  /*!
+   * @brief malloc that aborts on fail.
+   * @tparam T Type of elements to allocate.
+   * @return Pointer to allocated object.
+   * @par Example
+   *   @code
+   *   uint64_t * p = memutil::malloc_AbortOnFail<uint64_t>(10);
+   *   @endcode
+   *   The above code would reserve the space for 10 64bit uints, i.e., 10 * 8 = 80 bytes.
+   */
   template <typename T>
-  T * mymalloc(size_t n) {
-    assert(n > 0);
+  T * malloc_AbortOnFail
+  (
+   size_t n //!< Num of elements of 'T' to allocate.
+   ) noexcept {
+    assert(n > 0); //! @pre 'n' > 0.
 
     T * ptr = static_cast<T *>(malloc(n * sizeof(T)));
     if (ptr == NULL) {
-      std::cout << "not enough memory at line " << __LINE__ << std::endl;
+      std::cerr << "ABORTED ON FAIL: " << __func__ << ", sizeof(T) = " << sizeof(T) << ", n = " << n << std::endl;
       exit(EXIT_FAILURE);
     }
     return ptr;
   }
 
 
+  /*!
+   * @brief realloc that aborts on fail.
+   * @tparam T Type of elements to allocate.
+   * @return Pointer to allocated object.
+   * @par Example
+   *   @code
+   *   uint64_t * p = memutil::malloc_AbortOnFail<uint64_t>(10);
+   *   // Do something on p.
+   *   memutil::realloc_AbortOnFail(p, 20); // Expand p.
+   *   @endcode
+   */
   template <typename T>
-  void myrealloc(T *& ptr, size_t n) {
-    assert(n > 0);
+  void realloc_AbortOnFail
+  (
+   T *& ptr,
+   size_t n //!< Num of elements of 'T' to allocate.
+   ) noexcept {
+    assert(n > 0); //! @pre 'n' > 0.
 
     ptr = static_cast<T *>(realloc(ptr, n * sizeof(T)));
     if (ptr == NULL) {
-      std::cout << "not enough memory at line " << __LINE__ << std::endl;
+      std::cerr << "ABORTED ON FAIL: " << __func__ << ", sizeof(T) = " << sizeof(T) << ", n = " << n << std::endl;
       exit(EXIT_FAILURE);
     }
   }
 
 
+  /*!
+   * @brief Safe free that sets NULL after free.
+   */
   template <typename T>
-  void myfree(T *& ptr) {
+  void safefree(T *& ptr) {
     free(ptr);
     ptr = NULL;
   }
 
 
+  /*!
+   * @brief Safe delete that sets NULL after delete.
+   */
   template <typename T>
-  void mydelete(T *& ptr) {
+  void safedelete(T *& ptr) {
     delete ptr;
     ptr = NULL;
   }
