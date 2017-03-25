@@ -168,20 +168,22 @@ namespace bits
 
 
   /*!
-   * @brief Return # of 1's in words[[0..i]].
+   * @brief Return # of 1's in words[[0..bitLen)).
    * @pre The bit-region must not be out of bounds.
    */
   inline uint64_t cnt
   (
    const uint64_t * words, //!< Pointer to uint64_t array
-   uint64_t i //!< Bit-pos specifying the last position of the bit-region.
+   uint64_t bitLen //!< Bit-pos specifying the end position of the bit-region.
    ) {
     uint64_t ret = 0;
-    while (i >= 64) {
+    while (bitLen >= 64) {
       ret += cnt64(*(words++));
-      i -= 64;
+      bitLen -= 64;
     }
-    ret += cnt64((*words) >> (64 - i - 1));
+    if (bitLen) {
+      ret += cnt64((*words) & TBL_LoSet[bitLen]);
+    }
     return ret;
   }
 
