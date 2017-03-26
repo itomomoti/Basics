@@ -148,13 +148,13 @@ namespace bits
 
 
   /*!
-   * @brief Return bit-pos of the 'rank'-th 1 in words[0..].
+   * @brief Return bit-pos of the 'rank'-th 1 in words[[0..]].
    * @pre 'rank'-th 1 must be found before going out of bounds.
    */
   inline uint64_t sel
   (
    const uint64_t * words,
-   uint64_t rank
+   uint64_t rank //!< 'rank' must be > 0.
    ) {
     uint64_t ret = 0;
     uint8_t cnt = cnt64(*words);
@@ -168,22 +168,20 @@ namespace bits
 
 
   /*!
-   * @brief Return # of 1's in words[[0..bitLen)).
+   * @brief Return # of 1's in words[[0..bitPos]].
    * @pre The bit-region must not be out of bounds.
    */
   inline uint64_t cnt
   (
    const uint64_t * words, //!< Pointer to uint64_t array
-   uint64_t bitLen //!< Bit-pos specifying the end position of the bit-region.
+   uint64_t bitPos //!< Bit-pos specifying the last position of the bit-region.
    ) {
     uint64_t ret = 0;
-    while (bitLen >= 64) {
+    while (bitPos > 63) {
       ret += cnt64(*(words++));
-      bitLen -= 64;
+      bitPos -= 64;
     }
-    if (bitLen) {
-      ret += cnt64((*words) & TBL_LoSet[bitLen]);
-    }
+    ret += cnt64((*words) & TBL_LoSet[bitPos+1]);
     return ret;
   }
 
