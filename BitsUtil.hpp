@@ -242,11 +242,11 @@ namespace bits
    */
   inline uint64_t readWBitsInWord
   (
-   const uint64_t * p,
-   const uint8_t offset,
-   const uint64_t mask
+   const uint64_t * p, //!< Pointer to the word from which bits are read.
+   const uint8_t offset, //!< in [0, 64).
+   const uint64_t mask //!< UINTW_MAX(w), where w is the bit length to be read.
    ) {
-    assert(offset < 64);
+    assert(bits::bitSize(mask) + offset <= 64);
 
     uint64_t ret = (*p) >> offset;
     return ret & mask;
@@ -305,6 +305,24 @@ namespace bits
       *p &= ~(mask >> loBits);
       *p |= val >> loBits;
     }
+  }
+
+
+  /*!
+   * @brief Simplified version of ::writeWBitsHead that can be used when writing bits in a single word.
+   */
+  inline void writeWBitsInWord
+  (
+   const uint64_t val, //!< in [0, 2^w).
+   uint64_t * p, //!< Pointer to the word to which val are written.
+   const uint8_t offset, //!< in [0, 64).
+   const uint64_t mask //!< UINTW_MAX(w), where w is the bit length to be read.
+   ) {
+    assert(bits::bitSize(mask) + offset <= 64);
+    assert(bits::bitSize(val) <= bits::bitSize(mask));
+
+    *p &= ~(mask << offset);
+    *p |= (val << offset);
   }
 
 
