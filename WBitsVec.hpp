@@ -38,21 +38,17 @@ class WBitsVec;
 class WBitsVecIterator :
   public std::iterator<std::input_iterator_tag, uint64_t>
 {
-  friend WBitsVec; // To use private constructors of WBitsVecIterator in WBitsVec.
-
   uint64_t * const array_;
   uint64_t pos_;
   const uint8_t w_;
 
-private:
+public:
   /*!
    * @brief Private constructor called by WBitsVec.
    */
-  WBitsVecIterator (uint64_t * array, uint64_t pos, uint8_t w) noexcept
+  WBitsVecIterator(uint64_t * array, uint64_t pos, uint8_t w) noexcept
     : array_(array), pos_(pos), w_(w)
   {}
-
-public:
   //// copy
   WBitsVecIterator(const WBitsVecIterator & itr) noexcept = default;
   WBitsVecIterator& operator=(const WBitsVecIterator & itr) noexcept = default;
