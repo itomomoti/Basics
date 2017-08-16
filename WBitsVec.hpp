@@ -276,7 +276,7 @@ public:
    uint8_t w = 1, //!< Initial bit-width.
    size_t capacity = 0 //!< Initial capacity.
    ) : array_(NULL), capacity_(capacity), size_(0), w_(w) {
-    assert(capacity_ <= bits::UINTW_MAX(58));
+    assert(capacity_ <= ctcbits::UINTW_MAX(58));
     assert(0 < w && w <= 64);
 
     if (capacity > 0) {
@@ -400,7 +400,7 @@ public:
   (
    const size_t newCapacity
    ) {
-    assert(newCapacity <= bits::UINTW_MAX(58));
+    assert(newCapacity <= ctcbits::UINTW_MAX(58));
 
     if (newCapacity > capacity_) {
       capacity_ = newCapacity;
@@ -420,7 +420,7 @@ public:
   (
    const size_t newSize
    ) {
-    assert(newSize <= bits::UINTW_MAX(58));
+    assert(newSize <= ctcbits::UINTW_MAX(58));
 
     if (newSize > capacity_) {
       reserve(newSize);
@@ -436,7 +436,7 @@ public:
   (
    const size_t newSize
    ) noexcept {
-    assert(newSize <= bits::UINTW_MAX(58));
+    assert(newSize <= ctcbits::UINTW_MAX(58));
 
     if (newSize <= capacity_) {
       size_ = newSize;
@@ -488,7 +488,7 @@ public:
    bool doShrink = false //!< If true, 'array_' is reallocated to fit max(size_, minCapacity) w-bits uints.
    ) {
     assert(0 < w && w <= 64);
-    assert(minCapacity <= bits::UINTW_MAX(58));
+    assert(minCapacity <= ctcbits::UINTW_MAX(58));
 
     if (minCapacity < size_) {
       minCapacity = size_;
