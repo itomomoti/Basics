@@ -20,3 +20,35 @@ project(Basics)
 add_library(${PROJECT_NAME} STATIC
   BitsUtil.cpp
 )
+
+
+
+#### TEST (to enable this add "-DTESTING=1" when running cmake)
+if(TESTING)
+  add_subdirectory(test)
+  enable_testing()
+  add_test(NAME WBitsVec_Test COMMAND WBitsVec_Test)
+  add_test(NAME BitVec_Test COMMAND BitVec_Test)
+endif(TESTING)
+
+
+
+#### Doxygen
+set(DOXYGEN_EXCLUDE "${CMAKE_SOURCE_DIR}/cmdline.h")
+
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+  set(DOXYGEN_CONF_FILE "doxygen.conf")
+  set(DOXYGEN_CONF_PATH ${CMAKE_CURRENT_BINARY_DIR}/${DOXYGEN_CONF_FILE})
+  set(DOXYGEN_SOURCE_DIR ${CMAKE_SOURCE_DIR})
+  set(DOXYGEN_TARGET "doc")
+
+  configure_file(${DOXYGEN_CONF_FILE}.in ${DOXYGEN_CONF_PATH})
+
+  add_custom_target(${DOXYGEN_TARGET}
+                    ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONF_PATH}
+		    DEPENDS ${DOXYGEN_CONF_PATH})
+else(DOXYGEN_FOUND)
+  message(WARNING "doxygen binary couldn't be found")
+endif(DOXYGEN_FOUND)
+
