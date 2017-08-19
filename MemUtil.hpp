@@ -58,7 +58,7 @@ namespace memutil
     assert(n > 0); //! @pre 'n' > 0.
 
     ptr = static_cast<T *>(realloc(ptr, n * sizeof(T)));
-    if (ptr == NULL) {
+    if (ptr == nullptr) {
       std::cerr << "ABORTED ON FAIL: " << __func__ << ", sizeof(T) = " << sizeof(T) << ", n = " << n << std::endl;
       exit(EXIT_FAILURE);
     }
@@ -71,7 +71,7 @@ namespace memutil
   template <typename T>
   void safefree(T *& ptr) {
     free(ptr);
-    ptr = NULL;
+    ptr = nullptr;
   }
 
 
@@ -81,7 +81,7 @@ namespace memutil
   template <typename T>
   void safedelete(T *& ptr) {
     delete ptr;
-    ptr = NULL;
+    ptr = nullptr;
   }
 }
 
