@@ -287,7 +287,9 @@ public:
 
   //// Copy
   /*!
-   * @brief Copy constructor that creates a clone of a given object.
+   * @brief Copy constructor.
+   * @attention
+   *   Since the contents of 'other' are copied, it may take time when other.size_ is large.
    */
   WBitsVec
   (
@@ -301,7 +303,11 @@ public:
 
 
   /*!
-   * @brief Discard the contents of lhs and copy rhs.
+   * @brief Assignment operator.
+   * @attention
+   *   If 'lhs' != 'rhs'
+   *   - Since the contents of 'rhs' are copied, it may take time when other.size_ is large.
+   *   - The contents of 'lhs' are freed.
    */
   WBitsVec& operator=
   (
@@ -323,6 +329,8 @@ public:
   //// Move
   /*!
    * @brief Move constructor.
+   * @attention
+   *   'other' is initialized to empty WBitsVec object.
    */
   WBitsVec
   (
@@ -334,7 +342,11 @@ public:
 
 
   /*!
-   * @brief Move rhs to lhs.
+   * @brief Move operator.
+   * @attention
+   *   If 'lhs' != 'rhs'
+   *   - The original contents of 'lhs' are freed.
+   *   - 'rhs' is initialized to empty WBitsVec object.
    */
   WBitsVec operator=
   (
