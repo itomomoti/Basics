@@ -20,235 +20,118 @@
 #include <iterator>
 #include <algorithm>
 
-#include "Uncopyable.hpp"
+#include "WBitsVec.hpp"
 #include "BitsUtil.hpp"
 #include "MemUtil.hpp"
 
 class BitVec;
 
 /*!
- * @brief Iterator for BitVec.
- * @attention
- *   An iterator is invalidated without notification when BitVec object is destroyed or reallocated.
- *   Using invalidated iterator would cause problems.
- * @note
- *   Unfortunately bit vector is only qualified to be input_iterator due to the current design of STL.
- *   (see e.g. http://www.boost.org/doc/libs/1_63_0/libs/iterator/doc/index.html).
- */
-class BitVecIterator :
-  public std::iterator<std::input_iterator_tag, uint64_t>
-{
-  uint64_t * const array_;
-  uint64_t pos_;
-
-public:
-  /*!
-   * @brief Public constructor.
-   */
-  BitVecIterator(uint64_t * array, uint64_t pos) noexcept
-    : array_(array), pos_(pos)
-  {}
-  //// copy
-  BitVecIterator(const BitVecIterator & itr) noexcept = default;
-  BitVecIterator& operator=(const BitVecIterator & itr) noexcept = default;
-  //// move
-  BitVecIterator(BitVecIterator && itr) noexcept = default;
-  BitVecIterator& operator=(BitVecIterator && itr) noexcept = default;
-
-
-  /*!
-   * @brief Read value at the position pointed by iterator.
-   */
-  uint64_t read() const {
-    return bits::readWBitsInWord(array_ + (pos_ >> 6), pos_ & 0x3f, ctcbits::UINTW_MAX(1));
-  }
-
-
-  /*!
-   * @brief Write 'val' at the position pointed by iterator.
-   */
-  void write
-  (
-   const uint64_t val
-   ) {
-    bits::writeWBitsInWord(val, array_ + (pos_ >> 6), pos_ & 0x3f, ctcbits::UINTW_MAX(1));
-  }
-
-
-  ////// operator
-  //// *itr
-  uint64_t operator*() {
-    return this->read();
-  }
-
-  //// ++itr
-  BitVecIterator & operator++() {
-    pos_ += 1;
-    return *this;
-  }
-
-  //// itr++
-  BitVecIterator operator++(int) {
-    BitVecIterator tmp(*this);
-    ++(*this);
-    return tmp;
-  }
-
-  //// --itr
-  BitVecIterator & operator--() {
-    pos_ -= 1;
-    return *this;
-  }
-
-  //// itr--
-  BitVecIterator operator--(int) {
-    BitVecIterator tmp(*this);
-    --(*this);
-    return tmp;
-  }
-
-  //// *this != itr
-  bool operator!=(const BitVecIterator & itr) {
-    return (pos_ != itr.pos_ || array_ != itr.array_);
-  }
-
-  //// *this == itr
-  bool operator==(const BitVecIterator & itr) {
-    return !(*this != itr);
-  }
-
-  ////// add more operators
-  //// itr += diff
-  BitVecIterator & operator+=(const difference_type diff) noexcept {
-    pos_ += diff;
-    return *this;
-  }
-
-  //// itr -= diff
-  BitVecIterator & operator-=(const difference_type diff) noexcept {
-    *this += (-1 * diff);
-    return *this;
-  }
-
-  //// itr + diff
-  friend BitVecIterator operator+(const BitVecIterator & itr, const difference_type diff) noexcept {
-    const int64_t pos = itr.pos_ + diff;
-    return BitVecIterator(itr.array_, pos);
-  }
-
-  //// diff + itr
-  friend BitVecIterator operator+(const difference_type diff, const BitVecIterator & itr) noexcept {
-    return itr + diff;
-  }
-
-  //// itr - diff
-  friend BitVecIterator operator-(const BitVecIterator & itr, const difference_type diff) noexcept {
-    return itr + (-1 * diff);
-  }
-
-  //// lhs - rhs
-  friend difference_type operator-(const BitVecIterator & lhs, const BitVecIterator & rhs) noexcept {
-    return static_cast<int64_t>(lhs.pos_) - static_cast<int64_t>(rhs.pos_);
-  }
-
-  //// lhs < rhs
-  friend bool operator<(const BitVecIterator & lhs, const BitVecIterator & rhs) noexcept {
-    return (lhs.pos_ < rhs.pos_ || lhs.array_ < rhs.array_);
-  }
-
-  //// rhs < lhs
-  friend bool operator>(const BitVecIterator & lhs, const BitVecIterator & rhs) noexcept {
-    return (rhs < lhs);
-  }
-
-  //// lhs <= rhs
-  friend bool operator<=(const BitVecIterator & lhs, const BitVecIterator & rhs) noexcept {
-    return !(lhs > rhs);
-  }
-
-  //// lhs >= rhs
-  friend bool operator>=(const BitVecIterator & lhs, const BitVecIterator & rhs) noexcept {
-    return !(lhs < rhs);
-  }
-
-
-  /*!
-   * @brief Move values from src-region to tgt-region with same bit-width.
-   * @pre The bit-width of src and tgt should be same.
-   */
-  friend void mvBA_SameW
-  (
-   BitVecIterator & src, //!< Iterator specifying the beginning position of src.
-   BitVecIterator & tgt, //!< Iterator specifying the beginning position of tgt.
-   const uint64_t num //!< Number of elements to move.
-   ) {
-    bits::mvBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num);
-  }
-
-
-  /*!
-   * @brief Move values from src-region to tgt-region.
-   * @attention When src-region and tgt-region overlap, the overlapped part of src-region is overwritten.
-   *            The other part of src-region is not changed.
-   * @note
-   *   The bit-width of src and tgt can be different.
-   */
-  friend void mvBA
-  (
-   BitVecIterator & src, //!< Iterator specifying the beginning position of src.
-   BitVecIterator & tgt, //!< Iterator specifying the beginning position of tgt.
-   const uint64_t num //!< Number of elements to move.
-   ) {
-    mvBA_SameW(src, tgt, num);
-  }
-
-
-  friend void mvBA_SameW(BitVecIterator && src, BitVecIterator && tgt, const uint64_t num) {
-    bits::mvBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num);
-  }
-
-
-  friend void mvBA(BitVecIterator && src, BitVecIterator && tgt, const uint64_t num) {
-    mvBA_SameW(src, tgt, num);
-  }
-};
-
-
-
-/*!
- * @brief Bit vector.
+ * @brief Variable length bit vector with functions in BitsUtil.
  * @attention
  *   For technical reason, capacity is limited to '2^58 - 1' due to compatibility with WBitsVec.
- * @attention
- *   We prohibit to copy an object of BitVec. Use smart pointer to distribute an objcet.
  */
 class BitVec
-  : Uncopyable
 {
-  uint64_t * array_; //!< Array to store values.
+  uint64_t * array_; //!< Array to store bits.
   size_t capacity_; //!< Current capacity (must be in [0, 2^58)).
   size_t size_; //!< Current size (must be in [0, capacity_]).
 
 public:
-  using iterator = BitVecIterator;
+  using iterator = WBitsVecIterator;
 
 public:
   BitVec
   (
    size_t capacity = 0 //!< Initial capacity.
-   ) : array_(NULL), capacity_(capacity), size_(0) {
-    assert(capacity_ <= ctcbits::UINTW_MAX(58));
+   ) : array_(nullptr), capacity_(0), size_(0) {
+    assert(capacity <= ctcbits::UINTW_MAX(58));
 
-    if (capacity > 0) {
-      const size_t len = (capacity_ + 63) / 64; // +63 for roundup
-      array_ = memutil::malloc_AbortOnFail<uint64_t>(len);
-    }
+    reserve(capacity);
   }
 
 
   ~BitVec()
   {
     free(array_);
+  }
+
+
+  //// Copy
+  /*!
+   * @brief Copy constructor.
+   * @attention
+   *   Since the contents of 'other' are copied, it may take time when other.size_ is large.
+   */
+  BitVec
+  (
+   const BitVec & other
+   ) : array_(nullptr), capacity_(0), size_(other.size_) {
+    reserve(other.capacity_);
+    if (size_ > 0) {
+      bits::mvBits(other.array_, 0, array_, 0, size());
+    }
+  }
+
+
+  /*!
+   * @brief Assignment operator.
+   * @attention
+   *   If 'lhs' != 'rhs'
+   *   - Since the contents of 'rhs' are copied, it may take time when other.size_ is large.
+   *   - The contents of 'lhs' are freed.
+   */
+  BitVec& operator=
+  (
+   const BitVec & other
+   ) {
+    if (this != &other) {
+      clear(); shrink_to_fit(); // clear() & shrink_to_fit() free array_
+      reserve(other.capacity_);
+      resize(other.size_);
+      if (size_ > 0) {
+        bits::mvBits(other.array_, 0, array_, 0, size_);
+      }
+    }
+    return *this;
+  }
+
+
+  //// Move
+  /*!
+   * @brief Move constructor.
+   * @attention
+   *   'other' is initialized to empty BitVec object.
+   */
+  BitVec
+  (
+   BitVec && other
+   ) : array_(other.array_), capacity_(other.capacity_), size_(other.size_) {
+    other.array_ = nullptr;
+    other.size_ = other.capacity_ = 0;
+  }
+
+
+  /*!
+   * @brief Move operator.
+   * @attention
+   *   If 'lhs' != 'rhs'
+   *   - The original contents of 'lhs' are freed.
+   *   - 'rhs' is initialized to empty BitVec object.
+   */
+  BitVec operator=
+  (
+   BitVec && other
+   ) {
+    if (this != &other) {
+      clear(); shrink_to_fit(); // clear() & shrink_to_fit() free array_
+      array_ = other.array_;
+      capacity_ = other.capacity_;
+      size_ = other.size_;
+      other.array_ = nullptr;
+      other.size_ = other.capacity_ = 0;
+    }
+    return *this;
   }
 
 
@@ -259,7 +142,7 @@ public:
   (
    size_t idx
    ) noexcept {
-    return BitVecIterator(array_, idx);
+    return WBitsVecIterator(array_, idx, 1);
   }
 
 
