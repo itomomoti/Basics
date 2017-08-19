@@ -17,6 +17,8 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -ggdb -Ofast -fstrict-aliasing -march=nat
 
 project(Basics)
 
+include_directories(${CMAKE_SOURCE_DIR})
+
 add_library(${PROJECT_NAME} STATIC
   BitsUtil.cpp
 )
