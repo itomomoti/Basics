@@ -20,7 +20,6 @@
 #include <iterator>
 #include <algorithm>
 
-#include "Uncopyable.hpp"
 #include "BitsUtil.hpp"
 #include "MemUtil.hpp"
 
@@ -44,7 +43,7 @@ class WBitsVecIterator :
 
 public:
   /*!
-   * @brief Private constructor called by WBitsVec.
+   * @brief Constructor.
    */
   WBitsVecIterator(uint64_t * array, uint64_t pos, uint8_t w) noexcept
     : array_(array), pos_(pos), w_(w)
@@ -256,11 +255,8 @@ public:
  * @brief W-bits packed vector. Bit-width 'w' and capacity can be changed dynamically.
  * @attention
  *   For technical reason, capacity is limited to '2^58 - 1' so that 'capacity * w' does not overflow.
- * @attention
- *   We prohibit to copy an object of WBitsVec. Use smart pointer to distribute an objcet.
  */
 class WBitsVec
-  : Uncopyable
 {
   uint64_t * array_; //!< Array to store values.
   size_t capacity_; //!< Current capacity (must be in [0, 2^58)).
@@ -275,20 +271,85 @@ public:
   (
    uint8_t w = 1, //!< Initial bit-width.
    size_t capacity = 0 //!< Initial capacity.
-   ) : array_(NULL), capacity_(capacity), size_(0), w_(w) {
-    assert(capacity_ <= ctcbits::UINTW_MAX(58));
+   ) : array_(nullptr), capacity_(0), size_(0), w_(w) {
+    assert(capacity <= ctcbits::UINTW_MAX(58));
     assert(0 < w && w <= 64);
 
-    if (capacity > 0) {
-      const size_t len = (capacity_ * w_ + 63) / 64; // +63 for roundup
-      array_ = memutil::malloc_AbortOnFail<uint64_t>(len);
-    }
+    reserve(capacity);
   }
 
 
   ~WBitsVec()
   {
     free(array_);
+  }
+
+
+  //// Copy
+  /*!
+   * @brief Copy constructor that creates a clone of a given object.
+   */
+  WBitsVec
+  (
+   const WBitsVec & other
+   ) : array_(nullptr), capacity_(0), size_(other.size_), w_(other.w_) {
+    reserve(other.capacity());
+    if (size_ > 0) {
+      bits::mvBits(other.array_, 0, array_, 0, size_ * w_);
+    }
+  }
+
+
+  /*!
+   * @brief Discard the contents of lhs and copy rhs.
+   */
+  WBitsVec& operator=
+  (
+   const WBitsVec & other
+   ) {
+    if (this != &other) {
+      clear(); shrink_to_fit(); // clear() & shrink_to_fit() free array_
+      size_ = other.size_;
+      w_ = other.w_;
+      reserve(other.capacity_);
+      if (size_ > 0) {
+        bits::mvBits(other.array_, 0, array_, 0, size() * w_);
+      }
+    }
+    return *this;
+  }
+
+
+  //// Move
+  /*!
+   * @brief Move constructor.
+   */
+  WBitsVec
+  (
+   WBitsVec && other
+   ) : array_(other.array_), capacity_(other.capacity_), size_(other.size_), w_(other.w_) {
+    other.array_ = nullptr;
+    other.size_ = other.capacity_ = 0;
+  }
+
+
+  /*!
+   * @brief Move rhs to lhs.
+   */
+  WBitsVec operator=
+  (
+   WBitsVec && other
+   ) {
+    if (this != &other) {
+      clear(); shrink_to_fit(); // clear() & shrink_to_fit() free array_
+      array_ = other.array_;
+      capacity_ = other.capacity_;
+      size_ = other.size_;
+      w_ = other.w_;
+      other.array_ = nullptr;
+      other.size_ = other.capacity_ = 0;
+    }
+    return *this;
   }
 
 
