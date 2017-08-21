@@ -330,7 +330,7 @@ public:
   /*!
    * @brief Move constructor.
    * @attention
-   *   'other' is initialized to empty WBitsVec object.
+   *   'other' is initialized to an object with capacity = 0.
    */
   WBitsVec
   (
@@ -346,7 +346,7 @@ public:
    * @attention
    *   If 'lhs' != 'rhs'
    *   - The original contents of 'lhs' are freed.
-   *   - 'rhs' is initialized to empty WBitsVec object.
+   *   - 'rhs' is initialized to an object with capacity = 0.
    */
   WBitsVec operator=
   (
