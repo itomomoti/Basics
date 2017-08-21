@@ -23,6 +23,7 @@
 
 #include <stdint.h> // include uint64_t etc.
 #include <assert.h>
+#include <iostream>
 
 
 /*!
@@ -53,6 +54,22 @@ namespace ctcbits
  */
 namespace bits
 {
+  inline void printBits
+  (
+   const uint64_t * words,
+   const uint64_t n
+   ) noexcept {
+    for (uint64_t i = 0; i < n; ++i) {
+      for (uint64_t j = 0; j < 64; ++j) {
+        std::cout << ((*words >> (63 - j)) & 1);
+      }
+      std::cout << " ";
+      ++words;
+    }
+    std::cout << std::endl;
+  }
+
+
   /*!
    * @brief Given w in [0, 64], TBL_LoSet[w] is the 64bit uint such that 'w' low significant bits are raised and the other bits not.
    */
@@ -124,6 +141,34 @@ namespace bits
 
 
   /*!
+   * @brief Return num of leading zero bits.
+   */
+  constexpr uint8_t clz
+  (
+   uint64_t val
+   ) {
+    if (val) {
+      return __builtin_clzll(val);
+    }
+    return 64;
+  }
+
+
+  /*!
+   * @brief Return num of trailing zero bits.
+   */
+  constexpr uint8_t ctz
+  (
+   uint64_t val
+   ) {
+    if (val) {
+      return __builtin_ctzll(val);
+    }
+    return 64;
+  }
+
+
+  /*!
    * @brief Return bit-pos of the 'rank'-th 1 in 'word'.
    */
   inline uint8_t sel64
@@ -163,7 +208,7 @@ namespace bits
       rank -= cnt;
       cnt = cnt64(*++words);
     };
-    return sel64(*words, rank);
+    return ret + sel64(*words, rank);
   }
 
 
@@ -181,8 +226,68 @@ namespace bits
       ret += cnt64(*(words++));
       bitPos -= 64;
     }
-    ret += cnt64((*words) & TBL_LoSet[bitPos+1]);
+    ret += cnt64((*words) & UINTW_MAX(bitPos+1));
     return ret;
+  }
+
+
+  /*!
+   * @brief Predecessor query.
+   * @ret
+   *   Return the largest set bit position smaller than or equal to a given bitPos.
+   *   Return UINT64_MAX when the answer is not found after investigating 'numWords' words.
+   */
+  inline uint64_t pred
+  (
+   const uint64_t * words, //!< Pointer to uint64_t array
+   const uint64_t bitPos, //!< BitPos specifying the beginning of the bit-region.
+   const uint64_t numWords //!< # words to investigate in.
+   ) {
+    const uint64_t idx = bitPos >> 6;
+    words += idx;
+    auto word = (*words) & UINTW_MAX((bitPos & 0x3f) + 1);
+    uint64_t i = 0;
+    while (true) {
+      if (word) {
+        return ((idx - i + 1) << 6) - __builtin_clzll(word) - 1;
+      }
+      if (++i >= numWords) {
+        break;
+      }
+      word = *(--words);
+    }
+    return UINT64_MAX;
+  }
+
+
+  /*!
+   * @brief Successor query.
+   * @ret
+   *   Return the smallest set bit position larger than or equal to a given bitPos.
+   *   Return UINT64_MAX when the answer is not found after investigating 'numWords' words.
+   * @pre
+   *   Investigating bit-region must not be out-of-bounds.
+   */
+  inline uint64_t succ
+  (
+   const uint64_t * words, //!< Pointer to uint64_t array
+   uint64_t bitPos, //!< BitPos specifying the beginning of the bit-region.
+   uint64_t numWords //!< # words to investigate in.
+   ) {
+    const auto idx = bitPos >> 6;
+    words += idx;
+    auto word = *words & ~UINTW_MAX((bitPos & 0x3f));
+    uint64_t i = 0;
+    while (true) {
+      if (word) {
+        return ((idx + i) << 6) + __builtin_ctzll(word);
+      }
+      if (++i >= numWords) {
+        break;
+      }
+      word = *(++words);
+    }
+    return UINT64_MAX;
   }
 
 
@@ -240,14 +345,32 @@ namespace bits
   /*!
    * @brief Simplified version of ::readWBitsHead that can be used when reading bits in a single word.
    */
-  inline uint64_t readWBitsInWord
+  inline uint64_t readWBitsHead_S
   (
    const uint64_t * p, //!< Pointer to the word from which bits are read.
    const uint8_t offset, //!< in [0, 64).
-   const uint64_t mask //!< UINTW_MAX(w), where w is the bit length to be read.
+   const uint64_t mask //!< UINTW_MAX(w).
    ) {
     assert(bits::bitSize(mask) + offset <= 64);
 
+    uint64_t ret = (*p) >> offset;
+    return ret & mask;
+  }
+
+
+  /*!
+   * @brief Simplified version of ::readWBits that can be used when reading bits in a single word.
+   */
+  inline uint64_t readWBits_S
+  (
+   const uint64_t * p, //!< Pointer to words.
+   const uint64_t bitPos, //!< Bit-pos specifying the beginning position of the bit-region
+   const uint64_t mask //!< UINTW_MAX(w).
+   ) {
+    assert(bits::bitSize(mask) + (bitPos & 0x3f) <= 64);
+
+    p += (bitPos >> 6);
+    const uint8_t offset = bitPos & 0x3f;
     uint64_t ret = (*p) >> offset;
     return ret & mask;
   }
@@ -293,7 +416,7 @@ namespace bits
    const uint64_t mask //!< UINTW_MAX(w).
    ) {
     assert(w <= 64);
-    assert(val == 0 || bitSize(val) <= w);
+    assert(val == 0 || bits::bitSize(val) <= w);
 
     p += (bitPos >> 6);
     const uint8_t offset = bitPos & 0x3f;
@@ -311,16 +434,36 @@ namespace bits
   /*!
    * @brief Simplified version of ::writeWBitsHead that can be used when writing bits in a single word.
    */
-  inline void writeWBitsInWord
+  inline void writeWBitsHead_S
   (
    const uint64_t val, //!< in [0, 2^w).
    uint64_t * p, //!< Pointer to the word to which val are written.
    const uint8_t offset, //!< in [0, 64).
-   const uint64_t mask //!< UINTW_MAX(w), where w is the bit length to be read.
+   const uint64_t mask //!< UINTW_MAX(w).
    ) {
     assert(bits::bitSize(mask) + offset <= 64);
     assert(bits::bitSize(val) <= bits::bitSize(mask));
 
+    *p &= ~(mask << offset);
+    *p |= (val << offset);
+  }
+
+
+  /*!
+   * @brief Simplified version of ::writeWBits that can be used when writing bits in a single word.
+   */
+  inline void writeWBits_S
+  (
+   const uint64_t val, //!< in [0, 2^w).
+   uint64_t * p, //!< Pointer to words.
+   const uint64_t bitPos, //!< Bit-pos.
+   const uint64_t mask //!< UINTW_MAX(w).
+   ) {
+    assert(bits::bitSize(mask) + (bitPos & 0x3f) <= 64);
+    assert(bits::bitSize(val) <= bits::bitSize(mask));
+
+    p += (bitPos >> 6);
+    const uint8_t offset = bitPos & 0x3f;
     *p &= ~(mask << offset);
     *p |= (val << offset);
   }
@@ -541,6 +684,8 @@ namespace bits
       mvBitsBwd(src, srcOffset, tgt, tgtOffset, bitLen);
     }
   }
+
+
 }
 
 

@@ -6,7 +6,7 @@
  */
 /*!
  * @file BitVec.hpp
- * @brief Bit vector and its iterator. Some implementations are simplified compared to BitsWVec with w = 1.
+ * @brief Variable length bit vector wrapping functions in BitsUtil.
  * @author Tomohiro I
  * @date 2017-08-09
  */
@@ -24,10 +24,8 @@
 #include "BitsUtil.hpp"
 #include "MemUtil.hpp"
 
-class BitVec;
-
 /*!
- * @brief Variable length bit vector with functions in BitsUtil.
+ * @brief Variable length bit vector wrapping functions in BitsUtil.
  * @attention
  *   For technical reason, capacity is limited to '2^58 - 1' due to compatibility with WBitsVec.
  */
@@ -41,6 +39,9 @@ public:
   using iterator = WBitsVecIterator;
 
 public:
+  /*!
+   * @brief Constructor.
+   */
   BitVec
   (
    size_t capacity = 0 //!< Initial capacity.
@@ -101,7 +102,7 @@ public:
   /*!
    * @brief Move constructor.
    * @attention
-   *   'other' is initialized to empty BitVec object.
+   *   'other' is initialized to an object with capacity = 0.
    */
   BitVec
   (
@@ -117,7 +118,7 @@ public:
    * @attention
    *   If 'lhs' != 'rhs'
    *   - The original contents of 'lhs' are freed.
-   *   - 'rhs' is initialized to empty BitVec object.
+   *   - 'rhs' is initialized to an object with capacity = 0.
    */
   BitVec operator=
   (
@@ -172,31 +173,94 @@ public:
 
 
   /*!
-   * @brief Read value at 'idx'.
-   * @note We do not provide access by [] operator.
+   * @brief Read 'w'-bits written in the bit-region beginning at array_[[bitPos..]].
+   * @return Value represented by array_[[bitPos..bitPos+w)).
+   * @pre The bit-region must not be out of bounds.
    */
-  uint64_t read
+  uint64_t readWBits
   (
-   const size_t idx //!< in [0, capacity_).
-   ) const {
-    assert(idx < capacity_);
+   const uint64_t bitPos, //!< Bit-pos specifying the beginning position of the bit-region
+   const uint8_t w, //!< Bit-width in [0, 64].
+   const uint64_t mask //!< UINTW_MAX(w).
+   ) const noexcept {
+    assert(w <= 64);
 
-    return bits::readWBitsInWord(array_ + (idx >> 6), idx & 0x3f, ctcbits::UINTW_MAX(1));
+    return bits::readWBits(array_, bitPos, w, mask);
   }
 
 
   /*!
-   * @brief Write 'val' at 'idx'.
-   * @note We do not provide access by [] operator.
+   * @brief Simplified version of ::readWBits that can be used when reading bits in a single word.
    */
-  void write
+  uint64_t readWBits_S
   (
-   const bool val, //!< in [0, 1].
-   const size_t idx //!< in [0, capacity_).
-   ) {
-    assert(idx < capacity_);
+   const uint64_t bitPos, //!< Bit-pos specifying the beginning position of the bit-region
+   const uint64_t mask //!< UINTW_MAX(w).
+   ) const noexcept {
+    assert(bits::bitSize(mask) + (bitPos & 0x3f) <= 64);
 
-    bits::writeWBitsInWord(val, array_ + (idx >> 6), idx & 0x3f, ctcbits::UINTW_MAX(1));
+    return bits::readWBits_S(array_, bitPos, mask);
+  }
+
+
+  /*!
+   * @brief Read bit at 'bitPos'.
+   */
+  uint64_t readBit
+  (
+   const uint64_t bitPos //!< in [0, capacity_).
+   ) const noexcept {
+    assert(bitPos < capacity_);
+
+    return bits::readWBits_S(array_ + (bitPos >> 6), bitPos & 0x3f, ctcbits::UINTW_MAX(1));
+  }
+
+
+  /*!
+   * @brief Write 'w'-bit value 'val' to the bit-region beginning at array_[[bitPos..]].
+   * @pre The bit-region must not be out of bounds.
+   */
+  void writeWBits
+  (
+   const uint64_t val, //!< in [0, 2^w).
+   const uint64_t bitPos, //!< Bit-pos.
+   const uint8_t w, //!< Bit-width in [0, 64].
+   const uint64_t mask //!< UINTW_MAX(w).
+   ) {
+    assert(w <= 64);
+    assert(val == 0 || bits::bitSize(val) <= w);
+
+    bits::writeWBits(val, array_, bitPos, w, mask);
+  }
+
+
+  /*!
+   * @brief Simplified version of ::writeWBits that can be used when writing bits in a single word.
+   */
+  void writeWBits_S
+  (
+   const uint64_t val, //!< in [0, 2^w).
+   const uint64_t bitPos, //!< Bit-pos.
+   const uint64_t mask //!< UINTW_MAX(w).
+   ) {
+    assert(bits::bitSize(mask) + (bitPos & 0x3f) <= 64);
+    assert(bits::bitSize(val) <= bits::bitSize(mask));
+
+    bits::writeWBits_S(val, array_, bitPos, mask);
+  }
+
+
+  /*!
+   * @brief Write a bit 'val' at 'bitPos'.
+   */
+  void writeBit
+  (
+   const bool val, //!< Bool value.
+   const size_t bitPos //!< in [0, capacity_).
+   ) {
+    assert(bitPos < capacity_);
+
+    bits::writeWBits_S(val, array_ + (bitPos >> 6), bitPos & 0x3f, ctcbits::UINTW_MAX(1));
   }
 
 
@@ -308,6 +372,18 @@ public:
       memutil::safefree(array_);
     }
     capacity_ = size_;
+  }
+
+
+  void printDebugInfo() const noexcept {
+    auto size = this->size();
+    for (uint64_t i = 0; i < (size + 63) / 64; ++i) {
+      for (uint64_t j = 0; j < 64; ++j) {
+        std::cout << readBit(64 * i + 63 - j);
+      }
+      std::cout << " ";
+    }
+    std::cout << std::endl;
   }
 };
 
