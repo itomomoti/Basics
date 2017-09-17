@@ -19,7 +19,7 @@
 
 /*!
  * @namespace basic_search
- * @brief Basic search.
+ * @brief Basic search on array.
  */
 namespace basic_search
 {
@@ -33,7 +33,7 @@ namespace basic_search
    * @return The smallest idx in [lb, ub) such that func(idx) = true.
    */
   template<uint64_t LS = 0, class Predicate>
-    uint64_t lb
+    uint64_t partition_idx
   (
    uint64_t lb, //!< Initial lower bound (inclusive).
    uint64_t ub, //!< Initial upper bound (exclusive).
