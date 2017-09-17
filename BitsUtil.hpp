@@ -122,7 +122,7 @@ namespace bits
   (
    uint64_t val
    ) {
-    return __builtin_popcountll(val);
+    return static_cast<uint8_t>(__builtin_popcountll(val));
   }
 
 
@@ -134,7 +134,7 @@ namespace bits
    uint64_t val
    ) {
     if(val) {
-      return 64 - __builtin_clzll(val);
+      return static_cast<uint8_t>(64 - __builtin_clzll(val));
     }
     return 1;
   }
@@ -148,7 +148,7 @@ namespace bits
    uint64_t val
    ) {
     if (val) {
-      return __builtin_clzll(val);
+      return static_cast<uint8_t>(__builtin_clzll(val));
     }
     return 64;
   }
@@ -162,7 +162,7 @@ namespace bits
    uint64_t val
    ) {
     if (val) {
-      return __builtin_ctzll(val);
+      return static_cast<uint8_t>(__builtin_ctzll(val));
     }
     return 64;
   }
@@ -183,12 +183,12 @@ namespace bits
       const uint8_t x = word & 0xff;
       const uint64_t c = TBL_Cnt8[x];
       if (rank <= c) {
-        return j*8 + TBL_Sel8[(rank<<8) + x];
+        return static_cast<uint8_t>(j*8 + TBL_Sel8[(rank<<8) + x]);
       }
       rank -= c;
       word >>= 8;
     }
-    return 56 + TBL_Sel8[(rank<<8) + word];
+    return static_cast<uint8_t>(56 + TBL_Sel8[(rank<<8) + word]);
   }
 
 
@@ -196,7 +196,27 @@ namespace bits
    * @brief Return bit-pos of the 'rank'-th 1 in words[[0..]].
    * @pre 'rank'-th 1 must be found before going out of bounds.
    */
-  inline uint64_t sel
+  inline uint64_t sel_0
+  (
+   const uint64_t * words,
+   uint64_t rank //!< 'rank' must be > 0.
+   ) {
+    uint64_t ret = 0;
+    uint8_t cnt = cnt64(~(*words));
+    while (rank > cnt) {
+      ret += 64;
+      rank -= cnt;
+      cnt = cnt64(~(*++words));
+    };
+    return ret + sel64(~(*words), rank);
+  }
+
+
+  /*!
+   * @brief Return bit-pos of the 'rank'-th 1 in words[[0..]].
+   * @pre 'rank'-th 1 must be found before going out of bounds.
+   */
+  inline uint64_t sel_1
   (
    const uint64_t * words,
    uint64_t rank //!< 'rank' must be > 0.
@@ -213,10 +233,30 @@ namespace bits
 
 
   /*!
+   * @brief Return # of 0's in words[[0..bitPos]].
+   * @pre The bit-region must not be out of bounds.
+   */
+  inline uint64_t cnt_0
+  (
+   const uint64_t * words, //!< Pointer to uint64_t array
+   uint64_t bitPos //!< Bit-pos specifying the last position of the bit-region.
+   ) {
+    uint64_t ret = 0;
+    while (bitPos > 63) {
+      ret += cnt64(~(*words++));
+      bitPos -= 64;
+    }
+    assert(bitPos+1 <= 64);
+    ret += cnt64((~(*words)) & UINTW_MAX(static_cast<uint8_t>(bitPos+1)));
+    return ret;
+  }
+
+
+  /*!
    * @brief Return # of 1's in words[[0..bitPos]].
    * @pre The bit-region must not be out of bounds.
    */
-  inline uint64_t cnt
+  inline uint64_t cnt_1
   (
    const uint64_t * words, //!< Pointer to uint64_t array
    uint64_t bitPos //!< Bit-pos specifying the last position of the bit-region.
@@ -226,8 +266,38 @@ namespace bits
       ret += cnt64(*(words++));
       bitPos -= 64;
     }
-    ret += cnt64((*words) & UINTW_MAX(bitPos+1));
+    assert(bitPos+1 <= 64);
+    ret += cnt64((*words) & UINTW_MAX(static_cast<uint8_t>(bitPos+1)));
     return ret;
+  }
+
+
+  /*!
+   * @brief Predecessor query.
+   * @ret
+   *   Return the largest unset bit position smaller than or equal to a given bitPos.
+   *   Return UINT64_MAX when the answer is not found after investigating 'numWords' words.
+   */
+  inline uint64_t pred_0
+  (
+   const uint64_t * words, //!< Pointer to uint64_t array
+   const uint64_t bitPos, //!< BitPos specifying the beginning of the bit-region.
+   const uint64_t numWords //!< # words to investigate in.
+   ) {
+    const uint64_t idx = bitPos >> 6;
+    words += idx;
+    auto word = ~(*words) & UINTW_MAX((bitPos & 0x3f) + 1);
+    uint64_t i = 0;
+    while (true) {
+      if (word) {
+        return ((idx - i + 1) << 6) - static_cast<uint64_t>(__builtin_clzll(word)) - 1;
+      }
+      if (++i >= numWords) {
+        break;
+      }
+      word = ~(*--words);
+    }
+    return UINT64_MAX;
   }
 
 
@@ -237,7 +307,7 @@ namespace bits
    *   Return the largest set bit position smaller than or equal to a given bitPos.
    *   Return UINT64_MAX when the answer is not found after investigating 'numWords' words.
    */
-  inline uint64_t pred
+  inline uint64_t pred_1
   (
    const uint64_t * words, //!< Pointer to uint64_t array
    const uint64_t bitPos, //!< BitPos specifying the beginning of the bit-region.
@@ -249,7 +319,7 @@ namespace bits
     uint64_t i = 0;
     while (true) {
       if (word) {
-        return ((idx - i + 1) << 6) - __builtin_clzll(word) - 1;
+        return ((idx - i + 1) << 6) - static_cast<uint64_t>(__builtin_clzll(word)) - 1;
       }
       if (++i >= numWords) {
         break;
@@ -263,12 +333,43 @@ namespace bits
   /*!
    * @brief Successor query.
    * @ret
+   *   Return the smallest unset bit position larger than or equal to a given bitPos.
+   *   Return UINT64_MAX when the answer is not found after investigating 'numWords' words.
+   * @pre
+   *   Investigating bit-region must not be out-of-bounds.
+   */
+  inline uint64_t succ_0
+  (
+   const uint64_t * words, //!< Pointer to uint64_t array
+   uint64_t bitPos, //!< BitPos specifying the beginning of the bit-region.
+   uint64_t numWords //!< # words to investigate in.
+   ) {
+    const auto idx = bitPos >> 6;
+    words += idx;
+    auto word = ~(*words) & ~UINTW_MAX((bitPos & 0x3f));
+    uint64_t i = 0;
+    while (true) {
+      if (word) {
+        return ((idx + i) << 6) + static_cast<uint64_t>(__builtin_ctzll(word));
+      }
+      if (++i >= numWords) {
+        break;
+      }
+      word = ~(*++words);
+    }
+    return UINT64_MAX;
+  }
+
+
+  /*!
+   * @brief Successor query.
+   * @ret
    *   Return the smallest set bit position larger than or equal to a given bitPos.
    *   Return UINT64_MAX when the answer is not found after investigating 'numWords' words.
    * @pre
    *   Investigating bit-region must not be out-of-bounds.
    */
-  inline uint64_t succ
+  inline uint64_t succ_1
   (
    const uint64_t * words, //!< Pointer to uint64_t array
    uint64_t bitPos, //!< BitPos specifying the beginning of the bit-region.
@@ -280,7 +381,7 @@ namespace bits
     uint64_t i = 0;
     while (true) {
       if (word) {
-        return ((idx + i) << 6) + __builtin_ctzll(word);
+        return ((idx + i) << 6) + static_cast<uint64_t>(__builtin_ctzll(word));
       }
       if (++i >= numWords) {
         break;
@@ -506,7 +607,8 @@ namespace bits
       val |= *++src << diff2;
     }
   last:
-    const uint64_t mask = UINTW_MAX(bitLen);
+    assert(bitLen <= 64);
+    const uint64_t mask = UINTW_MAX(static_cast<uint8_t>(bitLen));
     *tgt &= ~mask;
     *tgt |= val & mask;
   }
@@ -556,7 +658,8 @@ namespace bits
       val |= *(--src) >> diff2;
     }
   last:
-    const uint64_t mask = UINTW_MAX(64 - bitLen);
+    assert(64 - bitLen <= 64);
+    const uint64_t mask = UINTW_MAX(static_cast<uint8_t>(64 - bitLen));
     *tgt &= mask;
     *tgt |= val & ~mask;
   }
@@ -579,7 +682,8 @@ namespace bits
       *tgt++ = val;
       val = *++src;
     }
-    const uint64_t mask2 = UINTW_MAX(bitLen);
+    assert(bitLen <= 64);
+    const uint64_t mask2 = UINTW_MAX(static_cast<uint8_t>(bitLen));
     *tgt &= ~mask2;
     *tgt |= val & mask2;
   }
@@ -607,7 +711,8 @@ namespace bits
       *tgt-- = val;
       val = *--src;
     }
-    const uint64_t mask2 = UINTW_MAX(64 - bitLen);
+    assert(64 - bitLen <= 64);
+    const uint64_t mask2 = UINTW_MAX(static_cast<uint8_t>(64 - bitLen));
     *tgt &= mask2;
     *tgt |= val & ~mask2;
   }
