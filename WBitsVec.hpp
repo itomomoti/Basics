@@ -37,9 +37,9 @@ class WBitsVec;
 class WBitsVecIterator :
   public std::iterator<std::input_iterator_tag, uint64_t>
 {
-  uint64_t * const array_;
+  uint64_t * array_;
   uint64_t pos_;
-  const uint8_t w_;
+  uint8_t w_;
 
 public:
   /*!
@@ -47,7 +47,9 @@ public:
    */
   WBitsVecIterator(uint64_t * array, uint64_t pos, uint8_t w) noexcept
     : array_(array), pos_(pos), w_(w)
-  {}
+  {
+    assert(0 < w && w <= 64);
+  }
   //// copy
   WBitsVecIterator(const WBitsVecIterator & itr) noexcept = default;
   WBitsVecIterator& operator=(const WBitsVecIterator & itr) noexcept = default;
@@ -120,7 +122,10 @@ public:
   ////// add more operators
   //// itr += diff
   WBitsVecIterator & operator+=(const difference_type diff) noexcept {
-    pos_ += static_cast<int64_t>(w_) * diff;
+    assert(static_cast<int64_t>(pos_) + static_cast<int64_t>(w_) * diff >= 0);
+
+    pos_ = static_cast<uint64_t>(static_cast<int64_t>(pos_) + static_cast<int64_t>(w_) * diff);
+    //    pos_ += static_cast<int64_t>(w_) * diff;
     return *this;
   }
 
@@ -132,8 +137,9 @@ public:
 
   //// itr + diff
   friend WBitsVecIterator operator+(const WBitsVecIterator & itr, const difference_type diff) noexcept {
-    const int64_t pos = itr.pos_ + static_cast<int64_t>(itr.w_) * diff;
-    return WBitsVecIterator(itr.array_, pos, itr.w_);
+    const int64_t pos = static_cast<int64_t>(itr.pos_) + static_cast<int64_t>(itr.w_) * diff;
+    assert(pos >= 0);
+    return WBitsVecIterator(itr.array_, static_cast<uint64_t>(pos), itr.w_);
   }
 
   //// diff + itr
@@ -259,7 +265,7 @@ public:
 class WBitsVec
 {
   uint64_t * array_; //!< Array to store values.
-  size_t capacity_; //!< Current capacity (must be in [0, 2^58)).
+  size_t capacity_; //!< Current capacity (must be in [0, 2^58)). It is guaranteed that the reserved space can accomodate 'capacity_ * w_' bits.
   size_t size_; //!< Current size (must be in [0, capacity_]).
   uint8_t w_; //!< Current bit-width (must be in [1, 64]).
 
@@ -275,7 +281,7 @@ public:
     assert(capacity <= ctcbits::UINTW_MAX(58));
     assert(0 < w && w <= 64);
 
-    reserve(capacity);
+    changeCapacity(capacity);
   }
 
 
@@ -295,8 +301,8 @@ public:
   (
    const WBitsVec & other
    ) : array_(nullptr), capacity_(0), size_(other.size_), w_(other.w_) {
-    reserve(other.capacity());
     if (size_ > 0) {
+      changeCapacity(other.capacity());
       bits::mvBits(other.array_, 0, array_, 0, size_ * w_);
     }
   }
@@ -305,19 +311,18 @@ public:
   /*!
    * @brief Assignment operator.
    * @attention
-   *   If 'lhs' != 'rhs'
-   *   - Since the contents of 'rhs' are copied, it may take time when other.size_ is large.
-   *   - The contents of 'lhs' are freed.
+   *   - It may take time when other.size_ is large.
+   *   - The original contents of "this" are freed.
    */
-  WBitsVec& operator=
+  WBitsVec & operator=
   (
    const WBitsVec & other
    ) {
     if (this != &other) {
-      clear(); shrink_to_fit(); // clear() & shrink_to_fit() free array_
+      clear(); changeCapacity(); // clear() & changeCapacity() free array_
       size_ = other.size_;
       w_ = other.w_;
-      reserve(other.capacity_);
+      changeCapacity(other.capacity_);
       if (size_ > 0) {
         bits::mvBits(other.array_, 0, array_, 0, size() * w_);
       }
@@ -330,7 +335,7 @@ public:
   /*!
    * @brief Move constructor.
    * @attention
-   *   'other' is initialized to an object with capacity = 0.
+   *   "other" is initialized to an object with capacity = 0.
    */
   WBitsVec
   (
@@ -344,16 +349,15 @@ public:
   /*!
    * @brief Move operator.
    * @attention
-   *   If 'lhs' != 'rhs'
-   *   - The original contents of 'lhs' are freed.
-   *   - 'rhs' is initialized to an object with capacity = 0.
+   *   - The original contents of "this" are freed.
+   *   - "other" is initialized to an object with capacity = 0.
    */
-  WBitsVec operator=
+  WBitsVec & operator=
   (
    WBitsVec && other
    ) {
     if (this != &other) {
-      clear(); shrink_to_fit(); // clear() & shrink_to_fit() free array_
+      clear(); changeCapacity(); // clear() & changeCapacity() free array_
       array_ = other.array_;
       capacity_ = other.capacity_;
       size_ = other.size_;
@@ -362,6 +366,19 @@ public:
       other.size_ = other.capacity_ = 0;
     }
     return *this;
+  }
+
+
+  /*!
+   * @brief Read only accessor.
+   */
+  uint64_t operator[]
+  (
+   const size_t idx //!< in [0, capacity_).
+   ) const {
+    assert(idx < capacity_);
+    
+    return this->read(idx);
   }
 
 
@@ -394,7 +411,6 @@ public:
 
   /*!
    * @brief Read value at 'idx'.
-   * @note We do not provide access by [] operator.
    */
   uint64_t read
   (
@@ -408,7 +424,6 @@ public:
 
   /*!
    * @brief Write 'val' at 'idx'.
-   * @note We do not provide access by [] operator.
    */
   void write
   (
@@ -419,6 +434,14 @@ public:
     assert(val <= bits::UINTW_MAX(w_));
 
     bits::writeWBits(val, array_, idx * w_, w_, bits::UINTW_MAX(w_));
+  }
+
+
+  /*!
+   * @brief Get current bit-width of each element.
+   */
+  uint8_t getW() const noexcept {
+    return w_;
   }
 
 
@@ -463,27 +486,6 @@ public:
 
 
   /*!
-   * @brief Reserve enough space to store 'newCapacity_ * w_' bits.
-   * @note
-   *   This function does not shrink 'capacity_'
-   *   If 'newCapacity > capacity_', expand 'array_' to store 'newCapacity * w_' bits.
-   *   'size_' is unchanged.
-  */
-  void reserve
-  (
-   const size_t newCapacity
-   ) {
-    assert(newCapacity <= ctcbits::UINTW_MAX(58));
-
-    if (newCapacity > capacity_) {
-      capacity_ = newCapacity;
-      const size_t len = (capacity_ * w_ + 63) / 64; // +63 for roundup
-      memutil::realloc_AbortOnFail<uint64_t>(array_, len);
-    }
-  }
-
-
-  /*!
    * @brief Resize 'size_' to 'newSize'. It expands 'array_' if needed.
    * @note
    *   This function does not shrink 'capacity_'
@@ -496,7 +498,7 @@ public:
     assert(newSize <= ctcbits::UINTW_MAX(58));
 
     if (newSize > capacity_) {
-      reserve(newSize);
+      changeCapacity(newSize);
     }
     size_ = newSize;
   }
@@ -520,16 +522,23 @@ public:
 
 
   /*!
-   * @brief Shrink vector to fit current bit-length in use.
+   * @brief Change capacity to max of givenCapacity and current size.
+   * @node If givenCapacity is not given, it works (with default parameter 0) as shrink_to_fit.
    */
-  void shrink_to_fit() {
-    if (size_ > 0) {
-      const size_t newLen = (size_ * w_ + 63) / 64; // +63 for roundup
-      memutil::realloc_AbortOnFail<uint64_t>(array_, newLen);
-    } else {
-      memutil::safefree(array_);
+  void changeCapacity
+  (
+   const size_t givenCapacity = 0
+   ) {
+    if (capacity_ != givenCapacity) {
+      const auto newCapacity = std::max(size_, givenCapacity);
+      if (newCapacity > 0) {
+        const size_t newLen = (newCapacity * w_ + 63) / 64; // +63 for roundup
+        memutil::realloc_AbortOnFail<uint64_t>(array_, newLen);
+      } else {
+        memutil::safefree(array_);
+      }
+      capacity_ = newCapacity;
     }
-    capacity_ = size_;
   }
 
 
@@ -563,6 +572,13 @@ public:
     assert(0 < w && w <= 64);
     assert(minCapacity <= ctcbits::UINTW_MAX(58));
 
+    // Convert the values in array for w < w_ where needed bits become smaller than before.
+    if (w < w_) { // w < w_ (w_ - w most significant bits for each value will be discarded)
+      for (uint64_t i = 0; i < this->size(); ++i) {
+        bits::writeWBits(this->read(i) & bits::UINTW_MAX(w), array_, i * w, w, bits::UINTW_MAX(w));
+      }
+    }
+
     if (minCapacity < size_) {
       minCapacity = size_;
     }
@@ -575,29 +591,31 @@ public:
       capacity_ = (oldLen * 64) / w;
     }
 
-    if (w == w_) {
-      return; // Do nothing
-    }
-    // Convert the values in array
+    // Convert the values in array for w > w_ where needed bits become larger than before.
     if (w > w_) {
       for (uint64_t i = this->size() - 1; i != UINT64_MAX; --i) {
         bits::writeWBits(this->read(i), array_, i * w, w, bits::UINTW_MAX(w));
-      }
-    } else { // w < w_ (w_ - w most significant bits for each value will be discarded)
-      for (uint64_t i = 0; i < this->size(); ++i) {
-        bits::writeWBits(this->read(i) & bits::UINTW_MAX(w), array_, i * w, w, bits::UINTW_MAX(w));
       }
     }
     w_ = w;
   }
 
 
-public:
-  /*!
-   * @brief Get current bit-width of each element.
-   */
-  uint8_t getW() const noexcept {
-    return w_;
+  void printStatistics
+  (
+   const bool verbose = false
+   ) const noexcept {
+    std::cout << "WBitsVec object (" << this << ") " << __func__ << "(" << verbose << ") BEGIN" << std::endl;
+    std::cout << "size = " << this->size() << ", capacity = " << this->capacity() << std::endl;
+    if (verbose) {
+      const auto size = this->size();
+      std::cout << "dump stored values" << std::endl;
+      for (uint64_t i = 0; i < size; ++i) {
+        std::cout << this->read(i) << ", ";
+      }
+      std::cout << std::endl;
+    }
+    std::cout << "WBitsVec object (" << this << ") " << __func__ << "(" << verbose << ") END" << std::endl;
   }
 };
 
