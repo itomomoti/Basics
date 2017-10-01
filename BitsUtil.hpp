@@ -24,7 +24,7 @@
 #include <stdint.h> // include uint64_t etc.
 #include <assert.h>
 #include <iostream>
-
+#include <cstring>
 
 /*!
  * @namespace ctcbits
@@ -570,18 +570,19 @@ namespace bits
   }
 
 
-  inline void mvBitsBwd_DiffOffs
+  inline void mvBitsLR_DiffOffs
   (
    const uint64_t * src,
-   uint8_t srcOffset,
+   const uint8_t srcOffset,
    uint64_t * tgt,
-   uint8_t tgtOffset,
+   const uint8_t tgtOffset,
    uint64_t bitLen
    ) {
-    assert(srcOffset != tgtOffset); //! @pre 'srcOffset' and 'tgtOffset' are different.
+    assert(src > tgt || (src == tgt && srcOffset >= tgtOffset) //! @pre "position of src-region" >= "position of tgt-region".
+           || static_cast<uint64_t>(tgt - src) * 64 + tgtOffset <= bitLen + srcOffset); //! @pre src-region and tgt-region are non-overlapping.
+    assert(srcOffset != tgtOffset); //! @pre "srcOffset" and "tgtOffset" are different.
     assert(srcOffset <= 63);
     assert(tgtOffset <= 63);
-    assert(src >= tgt); //! @pre 'position of src-region' >= 'position of tgt-region'.
 
     uint8_t diff1, diff2;
     uint64_t val = *src >> srcOffset;
@@ -614,7 +615,7 @@ namespace bits
   }
 
 
-  inline void mvBitsFwd_DiffOffs
+  inline void mvBitsRL_DiffOffs
   (
    const uint64_t * src,
    uint8_t srcOffset,
@@ -622,10 +623,10 @@ namespace bits
    uint8_t tgtOffset,
    uint64_t bitLen
    ) {
+    assert(src < tgt || (src == tgt && srcOffset < tgtOffset)); //! @pre "position of src-region" < "position of tgt-region"
     assert(srcOffset != tgtOffset); //! @pre 'srcOffset' and 'tgtOffset' are different.
     assert(srcOffset <= 63);
     assert(tgtOffset <= 63);
-    assert(src < tgt || (src == tgt && srcOffset < tgtOffset)); //! @pre 'position of src-region' < 'position of tgt-region'.
 
     if (srcOffset == 0) {
       srcOffset = 64;
@@ -665,15 +666,16 @@ namespace bits
   }
 
 
-  inline void mvBitsBwd_SameOffs
+  inline void mvBitsLR_SameOffs
   (
    const uint64_t * src,
    uint64_t * tgt,
-   uint8_t offset,
+   const uint8_t offset,
    uint64_t bitLen
    ) {
+    assert(src >= tgt //! @pre "position of src-region" >= "position of tgt-region".
+           || static_cast<uint64_t>(tgt - src) * 64 <= bitLen); //! @pre src-region and tgt-region are non-overlapping.
     assert(offset <= 63); //! @pre 'offset' in [0..64).
-    assert(src >= tgt); //! @pre 'position of src-region' >= 'position of tgt-region'.
 
     const uint64_t mask1 = UINTW_MAX(offset);
     uint64_t val = *tgt & mask1;
@@ -689,15 +691,15 @@ namespace bits
   }
 
 
-  inline void mvBitsFwd_SameOffs
+  inline void mvBitsRL_SameOffs
   (
    const uint64_t * src,
    uint64_t * tgt,
    uint8_t offset,
    uint64_t bitLen
    ) {
-    assert(offset <= 63); //! @pre 'offset' in [0..64).
     assert(src < tgt); //! @pre 'position of src-region' < 'position of tgt-region'.
+    assert(offset <= 63); //! @pre 'offset' in [0..64).
 
     if (offset == 0) {
       offset = 64;
@@ -719,47 +721,49 @@ namespace bits
 
 
   /*!
-   * @brief Move bits backwardly from src-region to tgt-region (see also ::mvBits).
-   * @attention This function should be used when bits are moved backwardly, i.e., 'position of src-region' >= 'position of tgt-region'.
+   * @brief Move bits (by scanning bits from left to right) from src-region to tgt-region (see also ::mvBits).
+   * @attention
+   *   This function should be used when bits are moved backwardly, i.e., "position of src-region" >= "position of tgt-region", or non-overlapping.
    */
-  inline void mvBitsBwd
+  inline void mvBitsLR
   (
    const uint64_t * src,
-   uint8_t srcOffset,
+   const uint8_t srcOffset,
    uint64_t * tgt,
-   uint8_t tgtOffset,
-   uint64_t bitLen
+   const uint8_t tgtOffset,
+   const uint64_t bitLen
    ) {
-    assert(src > tgt || (src == tgt && srcOffset >= tgtOffset)); //! @pre 'position of src-region' >= 'position of tgt-region'.
+    assert(src > tgt || (src == tgt && srcOffset >= tgtOffset) //! @pre "position of src-region" >= "position of tgt-region".
+           || static_cast<uint64_t>(tgt - src) * 64 + tgtOffset <= bitLen + srcOffset); //! @pre src-region and tgt-region are non-overlapping.
 
     if (srcOffset != tgtOffset) {
-      mvBitsBwd_DiffOffs(src, srcOffset, tgt, tgtOffset, bitLen);
+      mvBitsLR_DiffOffs(src, srcOffset, tgt, tgtOffset, bitLen);
     } else {
-      mvBitsBwd_SameOffs(src, tgt, srcOffset, bitLen);
+      mvBitsLR_SameOffs(src, tgt, srcOffset, bitLen);
     }
   }
 
 
   /*!
-   * @brief Move bits forwardly from src-region to tgt-region (see also ::mvBits).
-   * @attention This function should be used when bits are moved forwardly, i.e., 'position of src-region' < 'position of tgt-region'.
+   * @brief Move bits (by scanning from right to left) from src-region to tgt-region (see also ::mvBits).
+   * @attention This function should be used when bits are moved forwardly, i.e., "position of src-region" < "position of tgt-region".
    * @attention Src-region is designated by the bit-region *ending (excluded)* at 'srcOffset' bit of 'src' and of length 'bitLen'.
    *            Tgt-region is similarly defined.
    */
-  inline void mvBitsFwd
+  inline void mvBitsRL
   (
    const uint64_t * src,
-   uint8_t srcOffset,
+   const uint8_t srcOffset,
    uint64_t * tgt,
-   uint8_t tgtOffset,
-   uint64_t bitLen
+   const uint8_t tgtOffset,
+   const uint64_t bitLen
    ) {
-    assert(src < tgt || (src == tgt && srcOffset < tgtOffset)); //! @pre 'position of src-region' < 'position of tgt-region'
+    assert(src < tgt || (src == tgt && srcOffset < tgtOffset)); //! @pre "position of src-region" < "position of tgt-region"
 
     if (srcOffset != tgtOffset) {
-      mvBitsFwd_DiffOffs(src, srcOffset, tgt, tgtOffset, bitLen);
+      mvBitsRL_DiffOffs(src, srcOffset, tgt, tgtOffset, bitLen);
     } else {
-      mvBitsFwd_SameOffs(src, tgt, srcOffset, bitLen);
+      mvBitsRL_SameOffs(src, tgt, srcOffset, bitLen);
     }
   }
 
@@ -776,20 +780,79 @@ namespace bits
   inline void mvBits
   (
    const uint64_t * src,
-   uint8_t srcOffset,
+   const uint8_t srcOffset,
    uint64_t * tgt,
-   uint8_t tgtOffset,
-   uint64_t bitLen
+   const uint8_t tgtOffset,
+   const uint64_t bitLen
    ) {
     if (src < tgt || (src == tgt && srcOffset < tgtOffset)) {
       const uint64_t srcBits = bitLen + srcOffset; // 'src + srcBitLen' points to the end bit position of src-region
       const uint64_t tgtBits = bitLen + tgtOffset;
-      mvBitsFwd(src + (srcBits >> 6), srcBits & 0x3f, tgt + (tgtBits >> 6), tgtBits & 0x3f, bitLen);
+      mvBitsRL(src + (srcBits >> 6), srcBits & 0x3f, tgt + (tgtBits >> 6), tgtBits & 0x3f, bitLen);
     } else {
-      mvBitsBwd(src, srcOffset, tgt, tgtOffset, bitLen);
+      mvBitsLR(src, srcOffset, tgt, tgtOffset, bitLen);
     }
   }
 
+
+  inline void cpBits_DiffOffs
+  (
+   const uint64_t * src,
+   const uint8_t srcOffset,
+   uint64_t * tgt,
+   const uint8_t tgtOffset,
+   uint64_t bitLen
+   ) {
+    mvBitsLR_DiffOffs(src, srcOffset, tgt, tgtOffset, bitLen);
+  }
+
+
+  inline void cpBits_SameOffs
+  (
+   const uint64_t * src,
+   uint64_t * tgt,
+   const uint8_t offset,
+   uint64_t bitLen
+   ) {
+    mvBitsLR_SameOffs(src, tgt, offset, bitLen);
+  }
+
+
+  /*!
+   * @brief Copy bits from src-region to tgt-region (redirect to ::mvBitsLR). 
+   * @attention
+   *   This function should be used when bits are moved backwardly, i.e., "position of src-region" >= "position of tgt-region", or non-overlapping.
+   */
+  inline void cpBits
+  (
+   const uint64_t * src,
+   const uint8_t srcOffset,
+   uint64_t * tgt,
+   const uint8_t tgtOffset,
+   const uint64_t bitLen
+   ) {
+    mvBits(src, srcOffset, tgt, tgtOffset, bitLen);
+  }
+
+
+  inline void mvBytes
+  (
+   const void * src,
+   void * tgt,
+   const uint64_t bytes
+   ) {
+    std::memcpy(tgt, src, bytes);
+  }
+
+
+  inline void cpBytes
+  (
+   const void * src,
+   void * tgt,
+   const uint64_t bytes
+   ) {
+    std::memmove(tgt, src, bytes);
+  }
 
 }
 
