@@ -29,11 +29,12 @@
  * @attention
  *   For technical reason, capacity is limited to '2^58 - 1' due to compatibility with WBitsVec.
  */
+template <typename SizeT = uint64_t>
 class BitVec
 {
   uint64_t * array_; //!< Array to store bits.
-  size_t capacity_; //!< Current capacity (must be in [0, 2^58)).
-  size_t size_; //!< Current size (must be in [0, capacity_]).
+  SizeT capacity_; //!< Current capacity (must be in [0, 2^58)).
+  SizeT size_; //!< Current size (must be in [0, capacity_]).
 
 public:
   using iterator = WBitsVecIterator;
@@ -46,6 +47,7 @@ public:
   (
    size_t capacity = 0 //!< Initial capacity.
    ) : array_(nullptr), capacity_(0), size_(0) {
+    assert(capacity <= ctcbits::UINTW_MAX(sizeof(SizeT) * 8));
     assert(capacity <= ctcbits::UINTW_MAX(58));
 
     changeCapacity(capacity);
@@ -73,7 +75,7 @@ public:
    ) : array_(nullptr), capacity_(0), size_(other.size_) {
     if (size_ > 0) {
       changeCapacity(other.capacity_); // Lazy reservation: If size_ == 0, we do not reserve anything.
-      bits::mvBits(other.array_, 0, array_, 0, size_);
+      bits::cpBytes(other.array_, array_, (size_ + 7) / 8);
     }
   }
 
@@ -94,7 +96,7 @@ public:
       clear();
       resize(other.size_); // Reservation is done if needed.
       if (other.size_ > 0) {
-        bits::mvBits(other.array_, 0, array_, 0, size_);
+        bits::cpBytes(other.array_, array_, (size_ + 7) / 8);
       }
     }
     return *this;
@@ -185,6 +187,8 @@ public:
    const uint8_t w, //!< Bit-width in [0, 64].
    const uint64_t mask //!< UINTW_MAX(w).
    ) const noexcept {
+    assert(bitPos < capacity_);
+    assert(bitPos + w <= capacity_);
     assert(w <= 64);
 
     return bits::readWBits(array_, bitPos, w, mask);
@@ -199,6 +203,8 @@ public:
    const uint64_t bitPos, //!< Bit-pos specifying the beginning position of the bit-region
    const uint64_t mask //!< UINTW_MAX(w).
    ) const noexcept {
+    assert(bitPos < capacity_);
+    assert(bitPos + bits::bitSize(mask) <= capacity_);
     assert(bits::bitSize(mask) + (bitPos & 0x3f) <= 64);
 
     return bits::readWBits_S(array_, bitPos, mask);
@@ -229,6 +235,8 @@ public:
    const uint8_t w, //!< Bit-width in [0, 64].
    const uint64_t mask //!< UINTW_MAX(w).
    ) {
+    assert(bitPos < capacity_);
+    assert(bitPos + w <= capacity_);
     assert(w <= 64);
     assert(val == 0 || bits::bitSize(val) <= w);
 
@@ -245,6 +253,8 @@ public:
    const uint64_t bitPos, //!< Bit-pos.
    const uint64_t mask //!< UINTW_MAX(w).
    ) {
+    assert(bitPos < capacity_);
+    assert(bitPos + bits::bitSize(mask) <= capacity_);
     assert(bits::bitSize(mask) + (bitPos & 0x3f) <= 64);
     assert(bits::bitSize(val) <= bits::bitSize(mask));
 
@@ -258,11 +268,29 @@ public:
   void writeBit
   (
    const bool val, //!< Bool value.
-   const size_t bitPos //!< in [0, capacity_).
+   const uint64_t bitPos //!< in [0, capacity_).
    ) {
     assert(bitPos < capacity_);
 
     bits::writeWBits_S(val, array_, bitPos, ctcbits::UINTW_MAX(1));
+  }
+
+
+  /*!
+   * @brief Move bits from src-region to tgt-region (tgt-region is in the array maintained by BitVec object).
+   * @attention When src-region and tgt-region overlap, the overlapped part of src-region is overwritten.
+   *            The other part of src-region is not changed.
+   */
+  inline void mvBitsFromArray
+  (
+   const uint64_t * src,
+   uint64_t srcBitPos,
+   uint64_t tgtBitPos,
+   uint64_t bitLen
+   ) {
+    assert(tgtBitPos + bitLen <= capacity_);
+
+    bits::mvBits(src + (srcBitPos / 64), srcBitPos % 64, array_ + (tgtBitPos / 64), tgtBitPos % 64, bitLen);
   }
 
 
@@ -286,7 +314,7 @@ public:
    * @brief Calculate total memory usage in bytes.
    */
   size_t calcMemBytes() const noexcept {
-    return sizeof(*this) + sizeof(uint64_t) * ((capacity_ + 63) / 64);
+    return sizeof(*this) + sizeof(uint64_t) * (capacity_ / 64);
   }
 
 
@@ -316,6 +344,7 @@ public:
   (
    const size_t newSize
    ) {
+    assert(newSize <= ctcbits::UINTW_MAX(sizeof(SizeT) * 8));
     assert(newSize <= ctcbits::UINTW_MAX(58));
 
     if (newSize > capacity_) {
@@ -332,6 +361,7 @@ public:
   (
    const size_t newSize
    ) noexcept {
+    assert(newSize <= ctcbits::UINTW_MAX(sizeof(SizeT) * 8));
     assert(newSize <= ctcbits::UINTW_MAX(58));
 
     if (newSize <= capacity_) {
@@ -350,8 +380,11 @@ public:
   (
    const size_t givenCapacity = 0
    ) {
+    assert(givenCapacity <= ctcbits::UINTW_MAX(sizeof(SizeT) * 8));
+    assert(givenCapacity <= ctcbits::UINTW_MAX(58));
+
     if (capacity_ != givenCapacity) {
-      const size_t newLen = (std::max(size_, givenCapacity) + 63) / 64; // +63 for roundup
+      const size_t newLen = (std::max(static_cast<size_t>(size_), givenCapacity) + 63) / 64; // +63 for roundup
       if (newLen > 0) {
         memutil::realloc_AbortOnFail<uint64_t>(array_, newLen);
         capacity_ = newLen * 64;
@@ -369,6 +402,7 @@ public:
    ) const noexcept {
     std::cout << "BitVec object (" << this << ") " << __func__ << "(" << verbose << ") BEGIN" << std::endl;
     std::cout << "size = " << this->size() << ", capacity = " << this->capacity() << std::endl;
+    std::cout << this->calcMemBytes() << " bytes" << std::endl;
     if (verbose) {
       const auto size = this->size();
       std::cout << "dump bits in array_ (" << array_ << ")" << std::endl;
@@ -384,5 +418,9 @@ public:
     std::cout << "BitVec object (" << this << ") " << __func__ << "(" << verbose << ") END" << std::endl;
   }
 };
+
+
+using BitVec64 = BitVec<uint64_t>; // 64bit version that occupies 24 bytes when capacity = 0.
+using BitVec32 = BitVec<uint32_t>; // 32bit version that occupies 16 bytes when capacity = 0.
 
 #endif
