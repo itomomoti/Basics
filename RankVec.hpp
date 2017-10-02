@@ -27,15 +27,15 @@
 
 /*!
  * @brief Bit vector supporting fast rank queries and select queries based on it.
- * @tparam BSIZE_M: Block size of a middle block. It should be a power of two.
  * @tparam BSIZE_T: Block size of a top block. It should be a power of two (strictly) smaller than 2^16.
+ * @tparam BSIZE_M: Block size of a middle block. It should be a power of two smaller than BSIZE_T.
  */
-template<uint16_t BSIZE_M = 256, uint16_t BSIZE_T = 4096>
+template<uint16_t BSIZE_T = 4096, uint16_t BSIZE_M = 256, typename SizeT = uint64_t>
 class RankVec
 {
-  BitVec bv_;
+  SizeT * blockT_;
   uint16_t * blockM_;
-  uint64_t * blockT_;
+  BitVec<SizeT> bv_;
 
 public:
   /*!
@@ -44,7 +44,8 @@ public:
   RankVec
   (
    size_t capacity = 0 //!< Initial capacity.
-   ) : bv_(), blockM_(nullptr), blockT_(nullptr) {
+   ) : blockT_(nullptr), blockM_(nullptr), bv_() {
+    assert(capacity <= ctcbits::UINTW_MAX(sizeof(SizeT) * 8));
     assert(capacity <= ctcbits::UINTW_MAX(58));
 
     this->changeCapacity(capacity);
@@ -71,15 +72,15 @@ public:
   RankVec
   (
    const RankVec & other
-   ) : bv_(other.bv_), blockM_(nullptr), blockT_(nullptr) {
+   ) : blockT_(nullptr), blockM_(nullptr), bv_(other.bv_) {
     const auto size = other.size();
     if (size > 0) {
       {
         const auto capacity = this->capacity();
         const auto lenT = (capacity + BSIZE_T - 1) / BSIZE_T;
         const auto lenM = (capacity + BSIZE_M - 1) / BSIZE_M - capacity / BSIZE_T;
-        memutil::realloc_AbortOnFail<uint16_t>(blockM_, lenM);
-        memutil::realloc_AbortOnFail<uint64_t>(blockT_, lenT);
+        memutil::realloc_AbortOnFail(blockM_, lenM);
+        memutil::realloc_AbortOnFail(blockT_, lenT);
       }
       {
         const auto lenT = (size + BSIZE_T - 1) / BSIZE_T;
@@ -112,8 +113,8 @@ public:
         const auto capacity = other.capacity();
         const auto lenT = (capacity + BSIZE_T - 1) / BSIZE_T;
         const auto lenM = (capacity + BSIZE_M - 1) / BSIZE_M - capacity / BSIZE_T;
-        memutil::realloc_AbortOnFail<uint16_t>(blockM_, lenM);
-        memutil::realloc_AbortOnFail<uint64_t>(blockT_, lenT);
+        memutil::realloc_AbortOnFail(blockM_, lenM);
+        memutil::realloc_AbortOnFail(blockT_, lenT);
       }
       {
         const auto size = other.size();
@@ -190,6 +191,8 @@ public:
    const uint8_t w, //!< Bit-width in [0, 64].
    const uint64_t mask //!< UINTW_MAX(w).
    ) const noexcept {
+    assert(bitPos < bv_.capacity());
+    assert(bitPos + w <= bv_.capacity());
     assert(w <= 64);
 
     return bv_.readWBits(bitPos, w, mask);
@@ -204,6 +207,8 @@ public:
    const uint64_t bitPos, //!< Bit-pos specifying the beginning position of the bit-region
    const uint64_t mask //!< UINTW_MAX(w).
    ) const noexcept {
+    assert(bitPos < bv_.capacity());
+    assert(bitPos + bits::bitSize(mask) <= bv_.capacity());
     assert(bits::bitSize(mask) + (bitPos & 0x3f) <= 64);
 
     return bv_.readWBits_S(bitPos, mask);
@@ -267,7 +272,7 @@ public:
   void shorten
   (
    const size_t givenSize //!< Given size.
-   ) {
+   ) noexcept {
     if (givenSize >= bv_.size()) {
       return;
     }
@@ -556,7 +561,7 @@ public:
     const auto capacity = bv_.capacity();
     const auto lenT = (capacity + BSIZE_T - 1) / BSIZE_T;
     const auto lenM = (capacity + BSIZE_M - 1) / BSIZE_M - capacity / BSIZE_T;
-    size_t bytes = sizeof(*this);
+    size_t bytes = sizeof(*this) - sizeof(bv_);
     bytes += sizeof(blockM_[0]) * lenM;
     bytes += sizeof(blockT_[0]) * lenT;
     bytes += bv_.calcMemBytes();
@@ -588,14 +593,17 @@ public:
   (
    const size_t givenCapacity = 0
    ) {
+    assert(givenCapacity <= ctcbits::UINTW_MAX(sizeof(SizeT) * 8));
+    assert(givenCapacity <= ctcbits::UINTW_MAX(58));
+
     if (bv_.capacity() != givenCapacity) {
       bv_.changeCapacity(givenCapacity);
       const auto newCapacity = bv_.capacity();
       if (newCapacity > 0) {
         const auto lenT = (newCapacity + BSIZE_T - 1) / BSIZE_T;
         const auto lenM = (newCapacity + BSIZE_M - 1) / BSIZE_M - newCapacity / BSIZE_T;
-        memutil::realloc_AbortOnFail<uint16_t>(blockM_, lenM);
-        memutil::realloc_AbortOnFail<uint64_t>(blockT_, lenT);
+        memutil::realloc_AbortOnFail(blockM_, lenM);
+        memutil::realloc_AbortOnFail(blockT_, lenT);
       } else {
         memutil::safefree(blockM_);
         memutil::safefree(blockT_);
@@ -610,7 +618,10 @@ public:
    ) const noexcept {
     std::cout << "RankVec object (" << this << ") " << __func__ << "(" << verbose << ") BEGIN" << std::endl;
     std::cout << "size = " << bv_.size() << ", capacity = " << bv_.capacity() << ", BSIZE_T = " << BSIZE_T << ", BSIZE_M = " << BSIZE_M << std::endl;
-    std::cout << this->calcMemBytes() << " bytes" << std::endl;
+    const auto capacity = bv_.capacity();
+    const auto lenT = (capacity + BSIZE_T - 1) / BSIZE_T;
+    const auto lenM = (capacity + BSIZE_M - 1) / BSIZE_M - capacity / BSIZE_T;
+    std::cout << this->calcMemBytes() << " bytes (blockT = " << sizeof(blockT_[0]) * lenT << ", blockM = " << sizeof(blockM_[0]) * lenM << ")" << std::endl;
     if (verbose) {
       const auto lenT = (bv_.size() + BSIZE_T - 1) / BSIZE_T;
       const auto lenM = (bv_.size() + BSIZE_M - 1) / BSIZE_M - bv_.size() / BSIZE_T;
@@ -629,5 +640,12 @@ public:
     std::cout << "RankVec object (" << this << ") " << __func__ << "(" << verbose << ") END" << std::endl;
   }
 };
+
+
+template<uint16_t BSIZE_T = 4096, uint16_t BSIZE_M = 256>
+using RankVec64 = RankVec<BSIZE_T, BSIZE_M, uint64_t>; // 64bit version that occupies 40 bytes when capacity = 0.
+
+template<uint16_t BSIZE_T = 4096, uint16_t BSIZE_M = 256>
+using RankVec32 = RankVec<BSIZE_T, BSIZE_M, uint32_t>; // 32bit version that occupies 32 bytes when capacity = 0.
 
 #endif
