@@ -303,7 +303,7 @@ public:
    ) : array_(nullptr), capacity_(0), size_(other.size_), w_(other.w_) {
     if (size_ > 0) {
       changeCapacity(other.capacity());
-      bits::mvBits(other.array_, 0, array_, 0, size_ * w_);
+      bits::cpBytes(other.array_, array_, (size_ * w_ + 7) / 8);
     }
   }
 
@@ -324,7 +324,7 @@ public:
       w_ = other.w_;
       changeCapacity(other.capacity_);
       if (size_ > 0) {
-        bits::mvBits(other.array_, 0, array_, 0, size() * w_);
+        bits::cpBytes(other.array_, array_, (size() * w_ + 7) / 8);
       }
     }
     return *this;
@@ -534,10 +534,11 @@ public:
       if (newCapacity > 0) {
         const size_t newLen = (newCapacity * w_ + 63) / 64; // +63 for roundup
         memutil::realloc_AbortOnFail<uint64_t>(array_, newLen);
+        capacity_ = newLen * 64 / w_;
       } else {
         memutil::safefree(array_);
+        capacity_ = 0;
       }
-      capacity_ = newCapacity;
     }
   }
 
