@@ -38,6 +38,11 @@ if(TESTING)
 
   add_test(NAME SVec_Test COMMAND SVec_Test)
 
+  add_test(NAME StepCode_Test COMMAND StepCode_Test)
+
+  add_test(NAME BitsUtil_Benchmark COMMAND BitsUtil_Benchmark)
+  set_tests_properties(BitsUtil_Benchmark PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;Error;error")
+
   add_test(NAME WBitsVec_Benchmark COMMAND WBitsVec_Benchmark)
   set_tests_properties(WBitsVec_Benchmark PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;Error;error")
 

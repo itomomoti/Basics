@@ -117,11 +117,52 @@ namespace {
   }
 
 
-  TEST_F(SVec_Test, Convert)
+  TEST_F(SVec_Test, ConvertDec)
   {
     size_t num = 8200;
 
-    SVec<RankVec<> > sv(10, num);
+    SVec<RankVec<> > sv(12, num);
+    ASSERT_EQ(0, sv.size());
+    uint64_t val = 0;
+    for (uint64_t j = 0; j < num; ++j) {
+      // val += 1;
+      val += (j % 1000) + 1;
+      sv.append(val);
+      ASSERT_EQ(val, sv.select_1(j+1));
+    }
+    ASSERT_EQ(num, sv.size());
+    SVec<RankVec<> > sv1(sv);
+    sv.printStatistics();
+    std::cout << "shrink_to_fit() ->" << std::endl;
+    sv.shrink_to_fit();
+    sv.printStatistics();
+    {
+      const auto optLoW = sv1.calcOptimalLoW(sv1.getMax(), num);
+      std::cout << "Optimize " << (uint64_t)(sv1.getLoW()) << " to " << (uint64_t)(optLoW) << std::endl;
+      sv1.convert(optLoW, 0, 1.0, true); // Convert to optimal loW with shrinking.
+    }
+    sv1.printStatistics();
+
+    const auto num_ones = sv.getNum_1();
+    const auto num_zeros = sv.getNum_0();
+    for (uint64_t i = 0; i < num; ++i) {
+      ASSERT_EQ(sv.rank_1(i), sv1.rank_1(i));
+      ASSERT_EQ(sv.rank_0(i), sv1.rank_0(i));
+    }
+    for (uint64_t i = 1; i <= num_ones; ++i) {
+      ASSERT_EQ(sv.select_1(i), sv1.select_1(i));
+    }
+    for (uint64_t i = 1; i <= num_zeros; ++i) {
+      ASSERT_EQ(sv.select_0(i), sv1.select_0(i));
+    }
+  }
+
+
+  TEST_F(SVec_Test, ConvertInc)
+  {
+    size_t num = 8200;
+
+    SVec<RankVec<> > sv(4, num);
     ASSERT_EQ(0, sv.size());
     uint64_t val = 0;
     for (uint64_t j = 0; j < num; ++j) {

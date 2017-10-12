@@ -11,13 +11,20 @@ namespace {
   {
     size_t num = 8200;
 
+    // {
+    //   RankVec64<> v64;
+    //   v64.printStatistics();
+    //   RankVec32<> v32;
+    //   v32.printStatistics();
+    // }
+
     RankVec<> v1(num);
     {
       uint64_t sum = 0;
       for (uint64_t j = 0; j < num; ++j) {
         const auto diff0 = (j % 1000);
         if (v1.capacity() - v1.size() < diff0 + 1) {
-          // v.changeCapacity((v1.size() + diff0 + 1) * 2); // reserve "needed size * 2"
+          // v1.changeCapacity((v1.size() + diff0 + 1) * 2); // reserve "needed size * 2"
           v1.changeCapacity(((v1.size() + diff0 + 1) * 3) / 2); // reserve "needed size * 1.5"
         }
         for (uint64_t i = 0; i < diff0; ++i) {
@@ -29,6 +36,7 @@ namespace {
       ASSERT_EQ(sum, v1.size());
       ASSERT_LE(sum, v1.capacity());
     }
+    // v1.printStatistics();
 
     {
       RankVec<> v2(v1);
@@ -83,9 +91,6 @@ namespace {
 
     RankVec<> v(num);
     ASSERT_EQ(0, v.size());
-    // for (uint64_t j = 0; j < num; ++j) {
-    //   v.appendBit(!(j % 571) || !(j % 285));
-    // }
     for (uint64_t j = 0; j < num; ++j) {
       const auto diff0 = (j % 1000);
       if (v.capacity() - v.size() < diff0 + 1) {
@@ -117,9 +122,6 @@ namespace {
 
     RankVec<> v(num);
     ASSERT_EQ(0, v.size());
-    // for (uint64_t j = 0; j < num; ++j) {
-    //   v.appendBit(!(j % 571) || !(j % 285));
-    // }
     for (uint64_t j = 0; j < num; ++j) {
       const auto diff0 = (j % 1000);
       if (v.capacity() - v.size() < diff0 + 1) {
@@ -151,9 +153,6 @@ namespace {
 
     RankVec<> v(num);
     ASSERT_EQ(0, v.size());
-    // for (uint64_t j = 0; j < num; ++j) {
-    //   v.appendBit(!(j % 571) || !(j % 285));
-    // }
     for (uint64_t j = 0; j < num; ++j) {
       const auto diff0 = (j % 1000);
       if (v.capacity() - v.size() < diff0 + 1) {
@@ -206,12 +205,7 @@ namespace {
     size_t num = 8200;
 
     RankVec<> v(num);
-    // std::cout << "calcMemBytes: " << bv.calcMemBytes()
-    //           << "bytes, size / capacity_: " << bv.size() << " / " << bv.capacity() << std::endl;
     ASSERT_EQ(0, v.size());
-    // for (uint64_t j = 0; j < num; ++j) {
-    //   v.appendBit(!(j % 571) || !(j % 285));
-    // }
     for (uint64_t j = 0; j < num; ++j) {
       const auto diff0 = (j % 1000);
       if (v.capacity() - v.size() < diff0 + 1) {
