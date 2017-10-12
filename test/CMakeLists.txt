@@ -29,7 +29,9 @@ add_executable(WBitsVec_Test ${CMAKE_CURRENT_SOURCE_DIR}/WBitsVec_Test.cpp ${CMA
 add_executable(BitVec_Test ${CMAKE_CURRENT_SOURCE_DIR}/BitVec_Test.cpp ${CMAKE})
 add_executable(RankVec_Test ${CMAKE_CURRENT_SOURCE_DIR}/RankVec_Test.cpp ${CMAKE})
 add_executable(SVec_Test ${CMAKE_CURRENT_SOURCE_DIR}/SVec_Test.cpp ${CMAKE})
+add_executable(StepCode_Test ${CMAKE_CURRENT_SOURCE_DIR}/StepCode_Test.cpp ${CMAKE})
 
+add_executable(BitsUtil_Benchmark ${CMAKE_CURRENT_SOURCE_DIR}/BitsUtil_Benchmark.cpp ${CMAKE})
 add_executable(WBitsVec_Benchmark ${CMAKE_CURRENT_SOURCE_DIR}/WBitsVec_Benchmark.cpp ${CMAKE})
 add_executable(BasicSearch_Benchmark ${CMAKE_CURRENT_SOURCE_DIR}/BasicSearch_Benchmark.cpp ${CMAKE})
 
@@ -38,6 +40,8 @@ target_link_libraries(WBitsVec_Test Basics gtest gtest_main pthread)
 target_link_libraries(BitVec_Test Basics gtest gtest_main pthread)
 target_link_libraries(RankVec_Test Basics gtest gtest_main pthread)
 target_link_libraries(SVec_Test Basics gtest gtest_main pthread)
+target_link_libraries(StepCode_Test Basics gtest gtest_main pthread)
 
+target_link_libraries(BitsUtil_Benchmark Basics)
 target_link_libraries(WBitsVec_Benchmark Basics)
 target_link_libraries(BasicSearch_Benchmark Basics)
