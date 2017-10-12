@@ -841,7 +841,7 @@ namespace bits
    void * tgt,
    const uint64_t bytes
    ) {
-    std::memcpy(tgt, src, bytes);
+    std::memmove(tgt, src, bytes); // tgt and src are in this order in memmove
   }
 
 
@@ -851,7 +851,7 @@ namespace bits
    void * tgt,
    const uint64_t bytes
    ) {
-    std::memmove(tgt, src, bytes);
+    std::memcpy(tgt, src, bytes); // tgt and src are in this order in memcpy
   }
 
 }
