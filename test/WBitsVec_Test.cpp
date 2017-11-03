@@ -2,7 +2,8 @@
 #include <gtest/gtest.h>
 #include <stdint.h>
 
-namespace {
+namespace itmmti
+{
   class WBitsVecTest : public ::testing::Test
   {
   };

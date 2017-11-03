@@ -11,6 +11,8 @@
 #include "WBitsVec.hpp"
 #include <chrono>
 
+using namespace itmmti;
+
 int main(int argc, char *argv[])
 {
   cmdline::parser parser;

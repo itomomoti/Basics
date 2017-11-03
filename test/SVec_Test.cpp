@@ -3,7 +3,8 @@
 #include <gtest/gtest.h>
 #include <stdint.h>
 
-namespace {
+namespace itmmti
+{
   class SVec_Test : public ::testing::Test
   {
   };

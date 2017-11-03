@@ -11,6 +11,8 @@
 #include "BasicSearch.hpp"
 #include "WBitsVec.hpp"
 
+using namespace itmmti;
+
 int main(int argc, char *argv[])
 {
   cmdline::parser parser;
