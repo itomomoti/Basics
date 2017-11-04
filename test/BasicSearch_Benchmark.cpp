@@ -1,6 +1,5 @@
 #define BMTEST_BasicSearch
 #ifdef BMTEST_BasicSearch
-#include <gtest/gtest.h>
 #include <stdint.h>
 #include <iostream>
 #include <iomanip>

@@ -1,5 +1,4 @@
 #include "BitsUtil.hpp"
-#include <gtest/gtest.h>
 #include <stdint.h>
 
 
