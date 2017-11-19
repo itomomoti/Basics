@@ -187,33 +187,33 @@ namespace itmmti
      *   If there is a need to shift bit positions of values, call changeValPos().
      *   If there is a need to update wCodesAuxM array, call updateWCodesAuxM().
      */
-    template <typename SizeT>
-    static void changeWCodes
-    (
-     const uint64_t * srcWCodes, //!< Array storing source of wCodes using 4 bits each.
-     const uint64_t srcIdxBeg, //!< Beginning idx of src.
-     const uint64_t srcLen, //!< Length of wCodes of src to insert.
-     uint64_t * tgtWCodes, //!< Target wCodes array to change.
-     const uint64_t tgtIdxBeg, //!< Beginning idx of tgt.
-     const uint64_t tgtLen, //!< Length of wCodes of tgt to delete.
-     SizeT & size
-     ) noexcept {
-      assert(tgtIdxBeg + tgtLen <= size);
-      assert(size + srcLen >= tgtLen);
+    // template <typename SizeT>
+    // static void changeWCodes
+    // (
+    //  const uint64_t * srcWCodes, //!< Array storing source of wCodes using 4 bits each.
+    //  const uint64_t srcIdxBeg, //!< Beginning idx of src.
+    //  const uint64_t srcLen, //!< Length of wCodes of src to insert.
+    //  uint64_t * tgtWCodes, //!< Target wCodes array to change.
+    //  const uint64_t tgtIdxBeg, //!< Beginning idx of tgt.
+    //  const uint64_t tgtLen, //!< Length of wCodes of tgt to delete.
+    //  SizeT & size
+    //  ) noexcept {
+    //   assert(tgtIdxBeg + tgtLen <= size);
+    //   assert(size + srcLen >= tgtLen);
 
-      const auto tailNum = size - (tgtIdxBeg + tgtLen); // at least 0 by assumption.
-      if (srcLen != tgtLen && tailNum) { // Need to shift elements in wCodes_.
-        const auto mvSrcPos = (tgtIdxBeg + tgtLen) * StepCodeUtil::kWCBits;
-        const auto mvTgtPos = (tgtIdxBeg + srcLen) * StepCodeUtil::kWCBits;
-        bits::mvBits(tgtWCodes + (mvSrcPos / 64), mvSrcPos % 64, tgtWCodes + (mvTgtPos / 64), mvTgtPos % 64, tailNum * StepCodeUtil::kWCBits);
-      }
-      if (srcLen) {
-        const auto mvSrcPos = srcIdxBeg * StepCodeUtil::kWCBits;
-        const auto mvTgtPos = tgtIdxBeg * StepCodeUtil::kWCBits;
-        bits::mvBits(srcWCodes + (mvSrcPos / 64), mvSrcPos % 64, tgtWCodes + (mvTgtPos / 64), mvTgtPos % 64, srcLen * StepCodeUtil::kWCBits);
-      }
-      size += srcLen - tgtLen;
-    }
+    //   const auto tailNum = size - (tgtIdxBeg + tgtLen); // at least 0 by assumption.
+    //   if (srcLen != tgtLen && tailNum) { // Need to shift elements in wCodes_.
+    //     const auto mvSrcPos = (tgtIdxBeg + tgtLen) * StepCodeUtil::kWCBits;
+    //     const auto mvTgtPos = (tgtIdxBeg + srcLen) * StepCodeUtil::kWCBits;
+    //     bits::mvBits(tgtWCodes + (mvSrcPos / 64), mvSrcPos % 64, tgtWCodes + (mvTgtPos / 64), mvTgtPos % 64, tailNum * StepCodeUtil::kWCBits);
+    //   }
+    //   if (srcLen) {
+    //     const auto mvSrcPos = srcIdxBeg * StepCodeUtil::kWCBits;
+    //     const auto mvTgtPos = tgtIdxBeg * StepCodeUtil::kWCBits;
+    //     bits::mvBits(srcWCodes + (mvSrcPos / 64), mvSrcPos % 64, tgtWCodes + (mvTgtPos / 64), mvTgtPos % 64, srcLen * StepCodeUtil::kWCBits);
+    //   }
+    //   size += srcLen - tgtLen;
+    // }
 
 
     /*!
@@ -238,20 +238,20 @@ namespace itmmti
      * @brief Change (shift) value positions.
      * @pre The resulting bit size should be within capacity.
      */
-    template <typename SizeT>
-    static void changeValPos
-    (
-     uint64_t * vals, //!< Array storing values.
-     SizeT & bitSize, //!< [in,out] bit size.
-     const uint64_t bitPos, //!< Beginning bit-pos in vals.
-     const uint64_t insBitLen, //!< Bit-length to insert.
-     const uint64_t delBitLen //!< Bit-length to delete.
-     ) noexcept {
-      const uint64_t srcPos = bitPos + delBitLen;
-      const uint64_t tgtPos = bitPos + insBitLen;
-      bits::mvBits(vals + (srcPos / 64), srcPos % 64, vals + (tgtPos / 64), tgtPos % 64, bitSize - srcPos);
-      bitSize += insBitLen - delBitLen;
-    }
+    // template <typename SizeT>
+    // static void changeValPos
+    // (
+    //  uint64_t * vals, //!< Array storing values.
+    //  SizeT & bitSize, //!< [in,out] bit size.
+    //  const uint64_t bitPos, //!< Beginning bit-pos in vals.
+    //  const uint64_t insBitLen, //!< Bit-length to insert.
+    //  const uint64_t delBitLen //!< Bit-length to delete.
+    //  ) noexcept {
+    //   const uint64_t srcPos = bitPos + delBitLen;
+    //   const uint64_t tgtPos = bitPos + insBitLen;
+    //   bits::mvBits(vals + (srcPos / 64), srcPos % 64, vals + (tgtPos / 64), tgtPos % 64, bitSize - srcPos);
+    //   bitSize += insBitLen - delBitLen;
+    // }
 
 
     /*!
@@ -349,7 +349,7 @@ namespace itmmti
      SizeT & size //!< [out] Capture size.
      ) {
       if (otherSize > 0) { // Lazy reservation: If size_ == 0, we do not reserve anything.
-        this->changeBitCapacity(bitCapacity, bitSize, otherBitSize);
+        bitCapacity = static_cast<SizeT>(this->changeBitCapacity(static_cast<size_t>(otherBitSize), static_cast<size_t>(bitSize)));
         bits::cpBytes(other.vals_, this->vals_, (otherBitSize + 7) / 8);
         bits::cpBytes(other.wCodes_, this->wCodes_, (otherSize * StepCodeUtil::kWCBits + 7) / 8);
         size = otherSize;
@@ -470,7 +470,7 @@ namespace itmmti
 
 
     /*!
-     * @brief Calculate the beginning bit-pos of "idxW"-th value in bv.
+     * @brief Calculate the beginning bit-pos of "idx"-th value in bv.
      * @pre "idx < size". Note that "size" is maintained outside of StepCodeCore.
      */
     uint64_t calcBitPos
@@ -482,7 +482,7 @@ namespace itmmti
 
 
     /*!
-     * @brief Calculate the beginning bit-pos of "idxW"-th value in bv.
+     * @brief Calculate the beginning bit-pos of "idx"-th value in bv.
      * @pre "idx < size". Note that "size" is maintained outside of StepCodeCore.
      */
     uint64_t calcBitPos
@@ -581,48 +581,48 @@ namespace itmmti
      * @brief Write uint "val" at the end.
      * @pre The resulting size_ and bitSize_ should be within capacity.
      */
-    template <typename SizeT>
-    void append
-    (
-     const uint64_t val, //!< Uint val.
-     const uint8_t steppedW, //!<  bit-width in {4, 8, 12, ..., 64} into which val fits.
-     SizeT & size, //!< [in,out] Size.
-     SizeT & bitSize //!< [in,out] Bit size.
-     ) {
-      assert(size < kMaxNum);
-      assert(steppedW <= 64 && steppedW % 4 == 0);
-      assert(bits::bitSize(val) <= steppedW);
+    // template <typename SizeT>
+    // void append
+    // (
+    //  const uint64_t val, //!< Uint val.
+    //  const uint8_t steppedW, //!<  bit-width in {4, 8, 12, ..., 64} into which val fits.
+    //  SizeT & size, //!< [in,out] Size.
+    //  SizeT & bitSize //!< [in,out] Bit size.
+    //  ) {
+    //   assert(size < kMaxNum);
+    //   assert(steppedW <= 64 && steppedW % 4 == 0);
+    //   assert(bits::bitSize(val) <= steppedW);
 
-      const uint8_t wCode = steppedW / StepCodeUtil::kStep - 1;
-      const auto begPos = bitSize;
-      bitSize += steppedW;
-      writeWBits(val, bitSize, steppedW);
-      bits::writeWBits_S(wCode, wCodes_, StepCodeUtil::kWCBits * size, ctcbits::UINTW_MAX(StepCodeUtil::kWCBits));
-      ++size;
-    }
+    //   const uint8_t wCode = steppedW / StepCodeUtil::kStep - 1;
+    //   const auto begPos = bitSize;
+    //   bitSize += steppedW;
+    //   writeWBits(val, bitSize, steppedW);
+    //   bits::writeWBits_S(wCode, wCodes_, StepCodeUtil::kWCBits * size, ctcbits::UINTW_MAX(StepCodeUtil::kWCBits));
+    //   ++size;
+    // }
 
 
     /*!
      * @brief Write uint "val" at the end.
      * @pre The resulting size_ and bitSize_ should be within capacity.
      */
-    template <typename SizeT>
-    void append
-    (
-     const uint64_t val, //!< Uint val.
-     SizeT & size, //!< [in,out] Size.
-     SizeT & bitSize //!< [in,out] Bit size.
-     ) {
-      assert(size < kMaxNum);
+    // template <typename SizeT>
+    // void append
+    // (
+    //  const uint64_t val, //!< Uint val.
+    //  SizeT & size, //!< [in,out] Size.
+    //  SizeT & bitSize //!< [in,out] Bit size.
+    //  ) {
+    //   assert(size < kMaxNum);
 
-      const auto wCode = StepCodeUtil::calcWCode(val);
-      const auto w = (wCode + 1) * StepCodeUtil::kStep;
-      const auto begPos = bitSize;
-      bitSize += w;
-      writeWBits(val, begPos, w);
-      bits::writeWBits_S(wCode, wCodes_, StepCodeUtil::kWCBits * size, ctcbits::UINTW_MAX(StepCodeUtil::kWCBits));
-      ++size;
-    }
+    //   const auto wCode = StepCodeUtil::calcWCode(val);
+    //   const auto w = (wCode + 1) * StepCodeUtil::kStep;
+    //   const auto begPos = bitSize;
+    //   bitSize += w;
+    //   writeWBits(val, begPos, w);
+    //   bits::writeWBits_S(wCode, wCodes_, StepCodeUtil::kWCBits * size, ctcbits::UINTW_MAX(StepCodeUtil::kWCBits));
+    //   ++size;
+    // }
 
 
     /*!
@@ -631,9 +631,9 @@ namespace itmmti
      */
     void rewriteVal
     (
-     const uint64_t val, //!< should fit in readW(idxW) bits.
+     const uint64_t val, //!< should fit in readW(idx) bits.
      const uint64_t idx, //!< in [0, size).
-     const uint64_t bitPos //!< should be bit-position of "idxW"-th (0base) values in bv_.
+     const uint64_t bitPos //!< should be bit-position of "idx"-th (0base) values in bv_.
      ) {
       assert(bits::bitSize(val) <= UINTW_MAX(readW(idx)));
 
@@ -643,26 +643,63 @@ namespace itmmti
 
 
     /*!
+     * @brief Move wCodes to "wCodes_"
+     * @pre Be sure to work within capacity of "srcWCodes" and "wCodes_".
+     * @node
+     *   - Be sure to maintain size outside if needed.
+     *   - Be sure maintain value positions outside if needed.
+     */
+    void mvWCodes
+    (
+     const uint64_t * srcWCodes, //!< Array storing source of wCodes using 4 bits each.
+     const uint64_t srcIdxBeg, //!< Beginning idx of src.
+     const uint64_t tgtIdxBeg, //!< Beginning idx of tgt.
+     const uint64_t len //!< Length of wCodes to move.
+     ) noexcept {
+      const auto mvSrcPos = srcIdxBeg * StepCodeUtil::kWCBits;
+      const auto mvTgtPos = tgtIdxBeg * StepCodeUtil::kWCBits;
+      bits::mvBits(srcWCodes + (mvSrcPos / 64), mvSrcPos % 64, wCodes_ + (mvTgtPos / 64), mvTgtPos % 64, len * StepCodeUtil::kWCBits);
+    }
+
+
+    /*!
+     * @brief Move vals.
+     * @pre Bit-regions should be within capacity.
+     * @node
+     *   - Be sure to maintain bitSize outside if needed.
+     */
+    void mvVals
+    (
+     const uint64_t * srcVals, //!< Array storing source values.
+     const uint64_t srcBitPos, //!< Beginning bit-pos in "srcVals".
+     const uint64_t tgtBitPos, //!< Beginning bit-pos in "tgtVals".
+     const uint64_t bitLen //!< Bit-len to move.
+     ) noexcept {
+      bits::mvBits(srcVals + (srcBitPos / 64), srcBitPos % 64, vals_ + (tgtBitPos / 64), tgtBitPos % 64, bitLen);
+    }
+
+
+    /*!
      * @brief Change wCode array by inserting and deleting wCodes.
      * @pre The resulting size should be within capacity.
      * @node
      *   If (tailNum && insBitLen != delBitLen), changeValPos should be called to maintain (shift) value positions.
      */
-    template <typename SizeT>
-    void changeWCodes
-    (
-     const uint64_t * srcWCodes, //!< Array storing source of wCodes using 4 bits each.
-     const uint64_t srcIdxBeg, //!< Beginning idx of src.
-     const uint64_t srcLen, //!< Length of wCodes of src to insert.
-     const uint64_t tgtIdxBeg, //!< Beginning idx of tgt.
-     const uint64_t tgtLen, //!< Length of wCodes of tgt to delete.
-     SizeT & size
-     ) noexcept {
-      assert(tgtIdxBeg + tgtLen <= size);
-      assert(size + srcLen >= tgtLen);
+    // template <typename SizeT>
+    // void changeWCodes
+    // (
+    //  const uint64_t * srcWCodes, //!< Array storing source of wCodes using 4 bits each.
+    //  const uint64_t srcIdxBeg, //!< Beginning idx of src.
+    //  const uint64_t srcLen, //!< Length of wCodes of src to insert.
+    //  const uint64_t tgtIdxBeg, //!< Beginning idx of tgt.
+    //  const uint64_t tgtLen, //!< Length of wCodes of tgt to delete.
+    //  SizeT & size
+    //  ) noexcept {
+    //   assert(tgtIdxBeg + tgtLen <= size);
+    //   assert(size + srcLen >= tgtLen);
 
-      StepCodeUtil::changeWCodes(srcWCodes, srcIdxBeg, srcLen, wCodes_, tgtIdxBeg, tgtLen, size);
-    }
+    //   StepCodeUtil::changeWCodes(srcWCodes, srcIdxBeg, srcLen, wCodes_, tgtIdxBeg, tgtLen, size);
+    // }
 
 
     /*!
@@ -684,34 +721,19 @@ namespace itmmti
      * @brief Change (shift) value positions.
      * @pre The resulting size should be within capacity.
      */
-    template <typename SizeT>
-    void changeValPos
-    (
-     SizeT & bitSize,
-     const uint64_t bitPos, //!< bitPos of bv_.
-     const uint64_t insBitLen, //!< Bit-length to insert in bv_
-     const uint64_t delBitLen //!< Bit-length to delete in bv_
-     ) noexcept {
-      const uint64_t srcPos = bitPos + delBitLen;
-      const uint64_t tgtPos = bitPos + insBitLen;
-      bits::mvBits(vals_ + (srcPos / 64), srcPos % 64, vals_ + (tgtPos / 64), tgtPos % 64, bitSize - srcPos);
-      bitSize += insBitLen - delBitLen;
-    }
-
-
-    /*!
-     * @brief Move vals.
-     * @pre Bit-regions should be within capacity.
-     */
-    void mvVals
-    (
-     const uint64_t * srcVals, //!< Array storing source values.
-     const uint64_t srcBitPos, //!< Beginning bit-pos in "srcVals".
-     const uint64_t tgtBitPos, //!< Beginning bit-pos in "tgtVals".
-     const uint64_t bitLen //!< Bit-len to move.
-     ) noexcept {
-      bits::mvBits(srcVals + (srcBitPos / 64), srcBitPos % 64, vals_ + (tgtBitPos / 64), tgtBitPos % 64, bitLen);
-    }
+    // template <typename SizeT>
+    // void changeValPos
+    // (
+    //  SizeT & bitSize,
+    //  const uint64_t bitPos, //!< bitPos of bv_.
+    //  const uint64_t insBitLen, //!< Bit-length to insert in bv_
+    //  const uint64_t delBitLen //!< Bit-length to delete in bv_
+    //  ) noexcept {
+    //   const uint64_t srcPos = bitPos + delBitLen;
+    //   const uint64_t tgtPos = bitPos + insBitLen;
+    //   bits::mvBits(vals_ + (srcPos / 64), srcPos % 64, vals_ + (tgtPos / 64), tgtPos % 64, bitSize - srcPos);
+    //   bitSize += insBitLen - delBitLen;
+    // }
 
 
     /*!
@@ -726,25 +748,20 @@ namespace itmmti
      * @brief Change capacity to max of givenCapacity and current size.
      * @node If givenCapacity is not given, it works (with default parameter 0) as shrink_to_fit.
      */
-    template <typename SizeT>
-    void changeBitCapacity
+    size_t changeBitCapacity
     (
-     SizeT & bitCapacity,
-     const SizeT bitSize,
-     const size_t givenCapacity = 0
+     const size_t givenCapacity,
+     const size_t curBitSize
      ) {
-      assert(givenCapacity <= ctcbits::UINTW_MAX(sizeof(SizeT) * 8));
       assert(givenCapacity <= ctcbits::UINTW_MAX(58));
 
-      if (bitCapacity != givenCapacity) {
-        const size_t newLen = (std::max(static_cast<size_t>(bitSize), givenCapacity) + 63) / 64; // +63 for roundup
-        if (newLen > 0) {
-          memutil::realloc_AbortOnFail<uint64_t>(vals_, newLen);
-          bitCapacity = newLen * 64;
-        } else {
-          memutil::safefree(vals_);
-          bitCapacity = 0;
-        }
+      const size_t newLen = (std::max(curBitSize, givenCapacity) + 63) / 64; // +63 for roundup
+      if (newLen > 0) {
+        memutil::realloc_AbortOnFail<uint64_t>(vals_, newLen);
+        return newLen * 64;
+      } else {
+        memutil::safefree(vals_);
+        return 0;
       }
     }
   };
@@ -890,15 +907,15 @@ namespace itmmti
 
 
     /*!
-     * @brief Read bit-width of "idxW"-th (0base) values.
+     * @brief Read bit-width of "idx"-th (0base) values.
      */
     uint8_t readW
     (
-     const uint64_t idxW //!< in [0, size_).
+     const uint64_t idx //!< in [0, size_).
      ) const noexcept {
-      assert(idxW < size_);
+      assert(idx < size_);
 
-      return core_.readW(idxW);
+      return core_.readW(idx);
     }
 
 
@@ -917,24 +934,24 @@ namespace itmmti
 
 
     /*!
-     * @brief Calculate the beginning bit-pos of "idxW"-th value in bv.
+     * @brief Calculate the beginning bit-pos of "idx"-th value in bv.
      */
     uint64_t calcBitPos
     (
-     const uint64_t idxW //!< "(idxW + 1) * 4 - 1"-th bit of wCodesArray should not be out-of-bound.
+     const uint64_t idx //!< "(idx + 1) * 4 - 1"-th bit of wCodesArray should not be out-of-bound.
      ) const noexcept {
-      assert(idxW < size_);
+      assert(idx < size_);
 
-      return core_.calcBitPos(idxW);
+      return core_.calcBitPos(idx);
     }
 
 
     /*!
-     * @brief Calculate the beginning bit-pos of "idxW"-th value in bv.
+     * @brief Calculate the beginning bit-pos of "idx"-th value in bv.
      */
     uint64_t calcBitPos
     (
-     const uint64_t idx, //!< "(idxW + 1) * 4 - 1"-th bit of wCodesArray should not be out-of-bound.
+     const uint64_t idx, //!< "(idx + 1) * 4 - 1"-th bit of wCodesArray should not be out-of-bound.
      const uint8_t * wCodesAuxM
      ) const noexcept {
       return core_.calcBitPos(idx, wCodesAuxM);
@@ -1020,7 +1037,11 @@ namespace itmmti
       assert(steppedW <= 64 && steppedW % 4 == 0);
       assert(bits::bitSize(val) <= steppedW);
 
-      core_.append(val, steppedW, size_, bitSize_);
+      const uint8_t wCode = steppedW / StepCodeUtil::kStep - 1;
+      core_.writeWBits(val, bitSize_, steppedW);
+      core_.writeWCode(wCode, size_);
+      bitSize_ += steppedW;
+      ++size_;
     }
 
 
@@ -1035,8 +1056,9 @@ namespace itmmti
       assert(size_ < kMaxNum);
       assert(bitSize_ + (bits::bitSize(val) + 3) / StepCodeUtil::kStep * StepCodeUtil::kStep <= bitCapacity_);
 
-      core_.append(val, size_, bitSize_);
+      this->append(val, StepCodeUtil::calcSteppedW(val));
     }
+
 
 
     /*!
@@ -1044,14 +1066,14 @@ namespace itmmti
      */
     void rewriteVal
     (
-     const uint64_t val, //!< should fit in readW(idxW) bits.
-     const uint64_t idxW, //!< in [0, size_).
-     const uint64_t bitPos //!< should be bit-position of "idxW"-th (0base) values in bv_.
+     const uint64_t val, //!< should fit in readW(idx) bits.
+     const uint64_t idx, //!< in [0, size_).
+     const uint64_t bitPos //!< should be bit-position of "idx"-th (0base) values in bv_.
      ) {
-      assert(idxW < size_);
-      assert(bits::bitSize(val) <= UINTW_MAX(readW(idxW)));
+      assert(idx < size_);
+      assert(bits::bitSize(val) <= UINTW_MAX(readW(idx)));
 
-      core_.rewriteVal(val, idxW, bitPos);
+      core_.rewriteVal(val, idx, bitPos);
     }
 
 
@@ -1074,8 +1096,22 @@ namespace itmmti
       assert(size_ - tgtLen + srcLen < kMaxNum);
       assert(size_ + srcLen >= tgtLen);
 
-      core_.changeWCodes(src, srcIdxBeg, srcLen, tgtIdxBeg, tgtLen, size_);
-      core_.changeValPos(bitSize_, bitPos, insBitLen, delBitLen);
+      { // Change wCodes
+        const auto tailNum = size_ - (tgtIdxBeg + tgtLen); // at least 0 by assumption.
+        if (srcLen != tgtLen && tailNum) { // Need to shift elements in wCodes_.
+          core_.mvWCodes(core_.getConstPtr_wCodes(), tgtIdxBeg + tgtLen, tgtIdxBeg + srcLen, tailNum);
+        }
+        if (srcLen) {
+          core_.mvWCodes(src, srcIdxBeg, tgtIdxBeg, srcLen);
+        }
+        size_ += srcLen - tgtLen;
+      }
+      { // Shift positions of values
+        const uint64_t srcPos = bitPos + delBitLen;
+        const uint64_t tgtPos = bitPos + insBitLen;
+        core_.mvVals(core_.getConstPtr_vals(), srcPos, tgtPos, bitSize_ - srcPos);
+        bitSize_ += insBitLen - delBitLen;
+      }
     }
 
   
@@ -1090,7 +1126,7 @@ namespace itmmti
      const uint64_t tgtBitPos,
      const uint64_t bitLen
      ) noexcept {
-      core_.mvBits(srcVals, srcBitPos, tgtBitPos, bitLen);
+      core_.mvVals(srcVals, srcBitPos, tgtBitPos, bitLen);
     }
 
 
@@ -1156,16 +1192,18 @@ namespace itmmti
 
     /*!
      * @brief Change capacity to max of givenCapacity and current size.
-     * @node If givenCapacity is not given, it works (with default parameter 0) as shrink_to_fit.
+     * @node If givenCapacity is 0, it works as shrink_to_fit.
      */
     void changeBitCapacity
     (
-     const size_t givenCapacity = 0
+     const size_t givenCapacity
      ) {
       assert(givenCapacity <= ctcbits::UINTW_MAX(sizeof(SizeT) * 8));
       assert(givenCapacity <= ctcbits::UINTW_MAX(58));
 
-      core_.changeBitCapacity(bitCapacity_, bitSize_, givenCapacity);
+      if (bitCapacity_ != givenCapacity) {
+        bitCapacity_ = core_.changeBitCapacity(givenCapacity, bitSize_);
+      }
     }
 
 
