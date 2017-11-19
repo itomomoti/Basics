@@ -581,7 +581,7 @@ namespace itmmti
      uint64_t bitLen
      ) {
       assert(src > tgt || (src == tgt && srcOffset >= tgtOffset) //! @pre "position of src-region" >= "position of tgt-region".
-             || static_cast<uint64_t>(tgt - src) * 64 + tgtOffset <= bitLen + srcOffset); //! @pre src-region and tgt-region are non-overlapping.
+             || static_cast<uint64_t>(tgt - src) * 64 + tgtOffset >= bitLen + srcOffset); //! @pre src-region and tgt-region are non-overlapping.
       assert(srcOffset != tgtOffset); //! @pre "srcOffset" and "tgtOffset" are different.
       assert(srcOffset <= 63);
       assert(tgtOffset <= 63);
@@ -676,7 +676,7 @@ namespace itmmti
      uint64_t bitLen
      ) {
       assert(src >= tgt //! @pre "position of src-region" >= "position of tgt-region".
-             || static_cast<uint64_t>(tgt - src) * 64 <= bitLen); //! @pre src-region and tgt-region are non-overlapping.
+             || static_cast<uint64_t>(tgt - src) * 64 >= bitLen); //! @pre src-region and tgt-region are non-overlapping.
       assert(offset <= 63); //! @pre 'offset' in [0..64).
 
       const uint64_t mask1 = UINTW_MAX(offset);

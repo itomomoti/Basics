@@ -84,7 +84,7 @@ namespace itmmti
      const uint64_t * wCodes, //!< Array storing wCodes using 4 bits each.
      const uint64_t idx //!< "(idx + 1) * 4 - 1"-th bit of wCodes array should not be out-of-bound.
      ) noexcept {
-      return kStep * (bits::readWBits_S(wCodes, kWCBits * idx, ctcbits::UINTW_MAX(kWCBits)) + 1);
+      return kStep * static_cast<uint8_t>(bits::readWBits_S(wCodes, kWCBits * idx, ctcbits::UINTW_MAX(kWCBits)) + 1);
     }
 
 
@@ -167,7 +167,7 @@ namespace itmmti
     /*!
      * @brief Calculate sum of wCodes in a given 64bits uint.
      */
-    static uint64_t sumWCodes
+    static uint8_t sumWCodes
     (
      uint64_t wCodesInWord //!< 64bits uint storing wCodes.
      ) noexcept {
@@ -1202,7 +1202,7 @@ namespace itmmti
       assert(givenCapacity <= ctcbits::UINTW_MAX(58));
 
       if (bitCapacity_ != givenCapacity) {
-        bitCapacity_ = core_.changeBitCapacity(givenCapacity, bitSize_);
+        bitCapacity_ = static_cast<SizeT>(core_.changeBitCapacity(givenCapacity, bitSize_));
       }
     }
 

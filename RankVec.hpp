@@ -109,7 +109,7 @@ namespace itmmti
      const RankVec & other
      ) {
       if (this != &other) {
-        this->clear(); this->changeCapacity(); // clear() & changeCapacity() free array_
+        this->clear(); this->changeCapacity(0); // clear() & changeCapacity(0) free array_
         bv_ = other.bv_;
         {
           const auto capacity = other.capacity();
@@ -162,7 +162,7 @@ namespace itmmti
      RankVec && other
      ) {
       if (this != &other) {
-        this->clear(); this->changeCapacity(); // clear() & changeCapacity() free array_
+        this->clear(); this->changeCapacity(0); // clear() & changeCapacity(0) free array_
         this->bv_ = std::move(other.bv_);
         blockM_ = other.blockM_;
         blockT_ = other.blockT_;
@@ -287,8 +287,8 @@ namespace itmmti
       const auto idxT = pos / BSIZE_T;
       const auto remT = pos % BSIZE_T;
       const auto idxM = (pos / BSIZE_M) - idxT;
-      const auto onesLastBlockM = bits::cnt_1(bv_.getConstArrayPtr() + pos / BSIZE_M * BSIZE_M / 64, pos % BSIZE_M);
-      const auto onesLastBlockT = (remT >= BSIZE_M)? blockM_[idxM-1] + onesLastBlockM : onesLastBlockM;
+      const uint16_t onesLastBlockM = static_cast<uint16_t>(bits::cnt_1(bv_.getConstArrayPtr() + pos / BSIZE_M * BSIZE_M / 64, pos % BSIZE_M));
+      const uint16_t onesLastBlockT = (remT >= BSIZE_M)? blockM_[idxM-1] + onesLastBlockM : onesLastBlockM;
       if (remT < BSIZE_T - BSIZE_M) {
         blockM_[idxM] = onesLastBlockT;
       }
@@ -589,11 +589,11 @@ namespace itmmti
 
     /*!
      * @brief Change capacity to max of givenCapacity and current size.
-     * @node If givenCapacity is not given, it works (with default parameter 0) as shrink_to_fit.
+     * @node If givenCapacity is 0, it works as shrink_to_fit.
      */
     void changeCapacity
     (
-     const size_t givenCapacity = 0
+     const size_t givenCapacity
      ) {
       assert(givenCapacity <= ctcbits::UINTW_MAX(sizeof(SizeT) * 8));
       assert(givenCapacity <= ctcbits::UINTW_MAX(58));

@@ -321,7 +321,7 @@ namespace itmmti
      const WBitsVec & other
      ) {
       if (this != &other) {
-        clear(); changeCapacity(); // clear() & changeCapacity() free array_
+        clear(); changeCapacity(0); // clear() & changeCapacity(0) free array_
         size_ = other.size_;
         w_ = other.w_;
         changeCapacity(other.capacity_);
@@ -359,7 +359,7 @@ namespace itmmti
      WBitsVec && other
      ) {
       if (this != &other) {
-        clear(); changeCapacity(); // clear() & changeCapacity() free array_
+        clear(); changeCapacity(0); // clear() & changeCapacity(0) free array_
         array_ = other.array_;
         capacity_ = other.capacity_;
         size_ = other.size_;
@@ -525,11 +525,11 @@ namespace itmmti
 
     /*!
      * @brief Change capacity to max of givenCapacity and current size.
-     * @node If givenCapacity is not given, it works (with default parameter 0) as shrink_to_fit.
+     * @node If givenCapacity is 0, it works as shrink_to_fit.
      */
     void changeCapacity
     (
-     const size_t givenCapacity = 0
+     const size_t givenCapacity
      ) {
       if (capacity_ != givenCapacity) {
         const auto newCapacity = std::max(size_, givenCapacity);

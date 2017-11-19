@@ -368,7 +368,7 @@ namespace itmmti
      */
     void changeCapacity
     (
-     const size_t givenCapacity = 0
+     const size_t givenCapacity
      ) {
       assert(givenCapacity <= ctcbits::UINTW_MAX(58));
 
@@ -498,8 +498,8 @@ namespace itmmti
      * @brief Shrink vector to fit current bit-length in use.
      */
     void shrink_to_fit() {
-      wbv_.changeCapacity();
-      rsv_.changeCapacity();
+      wbv_.changeCapacity(0);
+      rsv_.changeCapacity(0);
     }
 
 

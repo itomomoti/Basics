@@ -28,7 +28,7 @@ namespace itmmti
       const auto val = UINT64_C(1) << (j % 64);
       const auto newBvSize = code1.bitSize() + StepCodeUtil::calcSteppedW(val);
       if (newBvSize > code1.bitCapacity()) {
-        code1.changeBitCapacity(newBvSize * 1.25);
+        code1.changeBitCapacity(static_cast<size_t>(newBvSize * 1.25));
       }
       code1.append(val);
     }
@@ -87,7 +87,7 @@ namespace itmmti
       const auto val = UINT64_C(1) << (j % 64);
       const auto newBvSize = code.bitSize() + StepCodeUtil::calcSteppedW(val);
       if (newBvSize > code.bitCapacity()) {
-        code.changeBitCapacity(newBvSize * 1.25);
+        code.changeBitCapacity(static_cast<size_t>(newBvSize * 1.25));
       }
       code.append(val);
     }
@@ -113,13 +113,13 @@ namespace itmmti
       const auto val = UINT64_C(1) << (j % 64);
       const auto newBvSize = code.bitSize() + StepCodeUtil::calcSteppedW(val);
       if (newBvSize > code.bitCapacity()) {
-        code.changeBitCapacity(newBvSize * 1.25);
+        code.changeBitCapacity(static_cast<size_t>(newBvSize * 1.25));
       }
       code.append(val);
     }
     code.printStatistics(true);
     uint64_t wCodeSrc = 0;
-    for (uint64_t j = 0; j < 16; ++j) {
+    for (uint8_t j = 0; j < 16; ++j) {
       StepCodeUtil::writeWCode(j, &wCodeSrc, j);
     }
 

@@ -145,7 +145,8 @@ int main(int argc, char *argv[])
         uint32_t key = 0;
         auto t1 = std::chrono::high_resolution_clock::now();
         for (uint32_t k = 0; k < size; ++k, key += vstep) {
-          checksum0 += (uint64_t)(std::partition_point(array, array + size, [=](const uint32_t & a) { return (&a - array + 1) * step - a < key; }) - array);
+          checksum0 += (uint64_t)(std::partition_point(array, array + size,
+                                                       [=](const uint32_t & a) { return static_cast<uint64_t>(&a - array + 1) * step - a < key; }) - array);
         }
         auto t2 = std::chrono::high_resolution_clock::now();
         time0 += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
