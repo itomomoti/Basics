@@ -443,7 +443,7 @@ namespace itmmti
 
 
     /*!
-     * @brief Read bit-width of "idxW"-th (0base) values.
+     * @brief Read bit-width of "idx"-th (0base) values.
      * @pre "idx < size". Note that "size" is maintained outside of StepCodeCore.
      */
     uint8_t readW
