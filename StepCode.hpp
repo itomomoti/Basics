@@ -1201,7 +1201,7 @@ namespace itmmti
       assert(givenCapacity <= ctcbits::UINTW_MAX(58));
 
       if (bitCapacity_ != givenCapacity) {
-        bitCapacity_ = static_cast<SizeT>(core_.setBitCapacity(std::max(bitSize_, givenCapacity)));
+        bitCapacity_ = static_cast<SizeT>(core_.setBitCapacity(std::max(bitSize_, static_cast<SizeT>(givenCapacity))));
       }
     }
 
