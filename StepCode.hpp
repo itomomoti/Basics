@@ -523,7 +523,7 @@ namespace itmmti
      ) noexcept {
       assert(steppedW <= 64);
       assert(steppedW % 4 == 0);
-      assert(val == 0 || bits::bitSize(val) <= steppedW);
+      assert(bits::bitSize(val) <= steppedW);
 
       bits::writeWBits(val, vals_, bitPos, steppedW, bits::UINTW_MAX(steppedW));
     }
@@ -983,14 +983,15 @@ namespace itmmti
     (
      const uint64_t val, //!< in [0, 2^w).
      const uint64_t bitPos, //!< Bit-pos.
-     const uint8_t w //!< Bit-width in [0, 64].
+     const uint8_t steppedW //!< Bit-width in {4, 8, 12, 16, ..., 64}.
      ) noexcept {
       assert(bitPos < bitCapacity_);
-      assert(bitPos + w <= bitCapacity_);
-      assert(w <= 64);
-      assert(val == 0 || bits::bitSize(val) <= w);
+      assert(bitPos + steppedW <= bitCapacity_);
+      assert(steppedW <= 64);
+      assert(steppedW % 4 == 0);
+      assert(bits::bitSize(val) <= steppedW);
 
-      core_.writeWBits(val, bitPos, w);
+      core_.writeWBits(val, bitPos, steppedW);
     }
 
 
