@@ -349,7 +349,7 @@ namespace itmmti
      SizeT & size //!< [out] Capture size.
      ) {
       if (otherSize > 0) { // Lazy reservation: If size_ == 0, we do not reserve anything.
-        bitCapacity = static_cast<SizeT>(this->changeBitCapacity(static_cast<size_t>(otherBitSize), static_cast<size_t>(bitSize)));
+        bitCapacity = static_cast<SizeT>(this->setBitCapacity(static_cast<size_t>(std::max(otherBitSize, bitSize))));
         bits::cpBytes(other.vals_, this->vals_, (otherBitSize + 7) / 8);
         bits::cpBytes(other.wCodes_, this->wCodes_, (otherSize * StepCodeUtil::kWCBits + 7) / 8);
         size = otherSize;
@@ -746,16 +746,15 @@ namespace itmmti
 
     /*!
      * @brief Change capacity to max of givenCapacity and current size.
-     * @node If givenCapacity is not given, it works (with default parameter 0) as shrink_to_fit.
+     * @node It does not care size.
      */
-    size_t changeBitCapacity
+    size_t setBitCapacity
     (
-     const size_t givenCapacity,
-     const size_t curBitSize
+     const size_t givenCapacity
      ) {
       assert(givenCapacity <= ctcbits::UINTW_MAX(58));
 
-      const size_t newLen = (std::max(curBitSize, givenCapacity) + 63) / 64; // +63 for roundup
+      const size_t newLen = (givenCapacity + 63) / 64; // +63 for roundup
       if (newLen > 0) {
         memutil::realloc_AbortOnFail<uint64_t>(vals_, newLen);
         return newLen * 64;
@@ -1202,7 +1201,7 @@ namespace itmmti
       assert(givenCapacity <= ctcbits::UINTW_MAX(58));
 
       if (bitCapacity_ != givenCapacity) {
-        bitCapacity_ = static_cast<SizeT>(core_.changeBitCapacity(givenCapacity, bitSize_));
+        bitCapacity_ = static_cast<SizeT>(core_.setBitCapacity(std::max(bitSize_, givenCapacity)));
       }
     }
 

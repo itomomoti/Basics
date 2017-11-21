@@ -131,7 +131,7 @@ namespace itmmti
      BitVec && other
      ) {
       if (this != &other) {
-        clear(); changeCapacity(); // clear() & changeCapacity() free array_
+        clear(); changeCapacity(0); // clear() & changeCapacity(0) free array_
         array_ = other.array_;
         capacity_ = other.capacity_;
         size_ = other.size_;
@@ -376,11 +376,11 @@ namespace itmmti
 
     /*!
      * @brief Change capacity to max of givenCapacity and current size.
-     * @node If givenCapacity is not given, it works (with default parameter 0) as shrink_to_fit.
+     * @node If givenCapacity is 0, it works as shrink_to_fit.
      */
     void changeCapacity
     (
-     const size_t givenCapacity = 0
+     const size_t givenCapacity
      ) {
       assert(givenCapacity <= ctcbits::UINTW_MAX(sizeof(SizeT) * 8));
       assert(givenCapacity <= ctcbits::UINTW_MAX(58));
@@ -389,7 +389,7 @@ namespace itmmti
         const size_t newLen = (std::max(static_cast<size_t>(size_), givenCapacity) + 63) / 64; // +63 for roundup
         if (newLen > 0) {
           memutil::realloc_AbortOnFail<uint64_t>(array_, newLen);
-          capacity_ = newLen * 64;
+          capacity_ = static_cast<SizeT>(newLen * 64);
         } else {
           memutil::safefree(array_);
           capacity_ = 0;
