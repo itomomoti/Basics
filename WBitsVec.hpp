@@ -587,10 +587,14 @@ namespace itmmti
       }
       const size_t oldLen = (capacity_ * w_ + 63) / 64; // +63 for roundup
       const size_t minLen = (minCapacity * w + 63) / 64; // +63 for roundup
-      if (doShrink || minLen > oldLen) {
-        memutil::realloc_AbortOnFail(array_, minLen);
-        capacity_ = minCapacity;
-      } else {
+      if (minLen > oldLen || doShrink) {
+        if (minLen) {
+          memutil::realloc_AbortOnFail(array_, minLen);
+        } else {
+          memutil::safefree(array_);
+        }
+        capacity_ = (minLen * 64) / w;
+      } else if (!doShrink) {
         capacity_ = (oldLen * 64) / w;
       }
 
