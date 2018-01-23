@@ -21,7 +21,6 @@
 #include <algorithm>
 
 #include "BitsUtil.hpp"
-#include "BitsArrayUtil.hpp"
 #include "MemUtil.hpp"
 
 namespace itmmti

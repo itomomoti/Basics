@@ -81,6 +81,7 @@ namespace itmmti
      const BlockVec & other
      ) : blocks_(nullptr), capacity_(0), size_(0), numBlocksCapacity_(0), numBlocks_(0) {
       resize(other.size());
+      std::cout << "size_ = " << size_ << " other.size() = " << other.size() << std::endl;
       for (size_t i = 0; i < size_; ++i) {
         (*this)[i] = other[i];
       }
@@ -187,7 +188,7 @@ namespace itmmti
     /*!
      * @brief Get current capacity of "blocks_".
      */
-    size_t getBlocksCapacity() const noexcept {
+    size_t getNumBlocksCapacity() const noexcept {
       return numBlocksCapacity_;
     }
 
@@ -195,7 +196,7 @@ namespace itmmti
     /*!
      * @brief Get current size of "blocks_".
      */
-    size_t getBlocksSize() const noexcept {
+    size_t getNumBlocks() const noexcept {
       return numBlocks_;
     }
 

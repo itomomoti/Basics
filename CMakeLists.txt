@@ -69,6 +69,8 @@ if(TESTING OR TESTING_ALL)
 
     add_test(NAME WBitsVec_Test COMMAND WBitsVec_Test)
 
+    add_test(NAME WBitsBlockVec_Test COMMAND WBitsBlockVec_Test)
+
     add_test(NAME BitVec_Test COMMAND BitVec_Test)
 
     add_test(NAME RankVec_Test COMMAND RankVec_Test)
@@ -88,6 +90,9 @@ if(TESTING OR TESTING_ALL)
 
     add_test(NAME BlockVec_Benchmark COMMAND BlockVec_Benchmark)
     set_tests_properties(BlockVec_Benchmark PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;Error;error")
+
+    add_test(NAME WBitsBlockVec_Benchmark COMMAND WBitsBlockVec_Benchmark)
+    set_tests_properties(WBitsBlockVec_Benchmark PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;Error;error")
   endif()
 endif()
 
