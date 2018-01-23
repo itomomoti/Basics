@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     double time = 0;
     for (uint64_t r = 0; r < rep; ++r) {
       auto t1 = std::chrono::high_resolution_clock::now();
-      bits::cpBits_SameOffs(array0, array1, 0, num * 64);
+      bits::cpBits_SameOffs(array0, 0, array1, 0, num * 64);
       auto t2 = std::chrono::high_resolution_clock::now();
       time += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
       uint64_t checksum = 0;

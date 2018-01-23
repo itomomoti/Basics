@@ -21,6 +21,7 @@
 #include <algorithm>
 
 #include "BitsUtil.hpp"
+#include "BitsArrayUtil.hpp"
 #include "MemUtil.hpp"
 
 namespace itmmti
@@ -192,7 +193,11 @@ namespace itmmti
      const uint64_t num //!< Number of elements to move.
      ) {
       assert(src.w_ == tgt.w_);
-      bits::mvBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num * src.w_);
+      if (src.array_ + src.pos_ >= tgt.array_ + tgt.pos_) {
+        bits::mvBitsLR(src.array_, src.pos_, tgt.array_, tgt.pos_, num * src.w_);
+      } else {
+        bits::mvBitsRL(src.array_, src.pos_, tgt.array_, tgt.pos_, num * src.w_);
+      }
     }
 
 
@@ -236,7 +241,11 @@ namespace itmmti
     friend void mvWBA_SameW(WBitsVecIterator && src, WBitsVecIterator && tgt, const uint64_t num) {
       assert(src.w_ == tgt.w_);
 
-      bits::mvBits(src.array_ + (src.pos_ >> 6), src.pos_ & 0x3f, tgt.array_ + (tgt.pos_ >> 6), tgt.pos_ & 0x3f, num * src.w_);
+      if (src.array_ + src.pos_ >= tgt.array_ + tgt.pos_) {
+        bits::mvBitsLR(src.array_, src.pos_, tgt.array_, tgt.pos_, num * src.w_);
+      } else {
+        bits::mvBitsRL(src.array_, src.pos_, tgt.array_, tgt.pos_, num * src.w_);
+      }
     }
 
 

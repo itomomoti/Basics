@@ -266,7 +266,7 @@ namespace itmmti
      const uint64_t tgtBitPos, //!< Beginning bit-pos in "tgtVals".
      const uint64_t bitLen //!< Bit-len to move.
      ) noexcept {
-      bits::mvBits(srcVals + (srcBitPos / 64), srcBitPos % 64, tgtVals + (tgtBitPos / 64), tgtBitPos % 64, bitLen);
+      bits::mvBits(srcVals, srcBitPos, tgtVals, tgtBitPos, bitLen);
     }
   };
 
@@ -658,7 +658,7 @@ namespace itmmti
      ) noexcept {
       const auto mvSrcPos = srcIdxBeg * StepCodeUtil::kWCBits;
       const auto mvTgtPos = tgtIdxBeg * StepCodeUtil::kWCBits;
-      bits::mvBits(srcWCodes + (mvSrcPos / 64), mvSrcPos % 64, wCodes_ + (mvTgtPos / 64), mvTgtPos % 64, len * StepCodeUtil::kWCBits);
+      bits::mvBits(srcWCodes, mvSrcPos, wCodes_, mvTgtPos, len * StepCodeUtil::kWCBits);
     }
 
 
@@ -675,7 +675,7 @@ namespace itmmti
      const uint64_t tgtBitPos, //!< Beginning bit-pos in "tgtVals".
      const uint64_t bitLen //!< Bit-len to move.
      ) noexcept {
-      bits::mvBits(srcVals + (srcBitPos / 64), srcBitPos % 64, vals_ + (tgtBitPos / 64), tgtBitPos % 64, bitLen);
+      bits::mvBits(srcVals, srcBitPos, vals_, tgtBitPos, bitLen);
     }
 
 

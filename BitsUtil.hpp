@@ -198,19 +198,21 @@ namespace itmmti
      * @brief Return bit-pos of the 'rank'-th 1 in words[[0..]].
      * @pre 'rank'-th 1 must be found before going out of bounds.
      */
+    template<typename ArrayT>
     inline uint64_t sel_0
     (
-     const uint64_t * words,
+     const ArrayT & array,
+     uint64_t i,
      uint64_t rank //!< 'rank' must be > 0.
      ) {
       uint64_t ret = 0;
-      uint8_t cnt = cnt64(~(*words));
+      uint8_t cnt = cnt64(~(array[i]));
       while (rank > cnt) {
         ret += 64;
         rank -= cnt;
-        cnt = cnt64(~(*++words));
+        cnt = cnt64(~(array[++i]));
       };
-      return ret + sel64(~(*words), rank);
+      return ret + sel64(~(array[i]), rank);
     }
 
 
@@ -218,19 +220,21 @@ namespace itmmti
      * @brief Return bit-pos of the 'rank'-th 1 in words[[0..]].
      * @pre 'rank'-th 1 must be found before going out of bounds.
      */
+    template<typename ArrayT>
     inline uint64_t sel_1
     (
-     const uint64_t * words,
+     const ArrayT & array,
+     uint64_t i,
      uint64_t rank //!< 'rank' must be > 0.
      ) {
       uint64_t ret = 0;
-      uint8_t cnt = cnt64(*words);
+      uint8_t cnt = cnt64(array[i]);
       while (rank > cnt) {
         ret += 64;
         rank -= cnt;
-        cnt = cnt64(*++words);
+        cnt = cnt64(array[++i]);
       };
-      return ret + sel64(*words, rank);
+      return ret + sel64(array[i], rank);
     }
 
 
@@ -238,18 +242,20 @@ namespace itmmti
      * @brief Return # of 0's in words[[0..bitPos]].
      * @pre The bit-region must not be out of bounds.
      */
+    template<typename ArrayT>
     inline uint64_t cnt_0
     (
-     const uint64_t * words, //!< Pointer to uint64_t array
+     const ArrayT & array,
+     uint64_t i,
      uint64_t bitPos //!< Bit-pos specifying the last position of the bit-region.
      ) {
       uint64_t ret = 0;
       while (bitPos > 63) {
-        ret += cnt64(~(*words++));
+        ret += cnt64(~(array[i++]));
         bitPos -= 64;
       }
       assert(bitPos+1 <= 64);
-      ret += cnt64((~(*words)) & UINTW_MAX(static_cast<uint8_t>(bitPos+1)));
+      ret += cnt64((~(array[i])) & bits::UINTW_MAX(static_cast<uint8_t>(bitPos+1)));
       return ret;
     }
 
@@ -258,18 +264,20 @@ namespace itmmti
      * @brief Return # of 1's in words[[0..bitPos]].
      * @pre The bit-region must not be out of bounds.
      */
+    template<typename ArrayT>
     inline uint64_t cnt_1
     (
-     const uint64_t * words, //!< Pointer to uint64_t array
+     const ArrayT & array,
+     uint64_t i,
      uint64_t bitPos //!< Bit-pos specifying the last position of the bit-region.
      ) {
       uint64_t ret = 0;
       while (bitPos > 63) {
-        ret += cnt64(*(words++));
+        ret += cnt64(array[i++]);
         bitPos -= 64;
       }
       assert(bitPos+1 <= 64);
-      ret += cnt64((*words) & UINTW_MAX(static_cast<uint8_t>(bitPos+1)));
+      ret += cnt64(array[i] & bits::UINTW_MAX(static_cast<uint8_t>(bitPos+1)));
       return ret;
     }
 
@@ -280,15 +288,15 @@ namespace itmmti
      *   Return the largest unset bit position smaller than or equal to a given bitPos.
      *   Return UINT64_MAX when the answer is not found after investigating 'numWords' words.
      */
+    template<typename ArrayT>
     inline uint64_t pred_0
     (
-     const uint64_t * words, //!< Pointer to uint64_t array
+     const ArrayT & array,
      const uint64_t bitPos, //!< BitPos specifying the beginning of the bit-region.
      const uint64_t numWords //!< # words to investigate in.
      ) {
       const uint64_t idx = bitPos >> 6;
-      words += idx;
-      auto word = ~(*words) & UINTW_MAX((bitPos & 0x3f) + 1);
+      auto word = ~(array[idx]) & bits::UINTW_MAX((bitPos & 0x3f) + 1);
       uint64_t i = 0;
       while (true) {
         if (word) {
@@ -297,7 +305,7 @@ namespace itmmti
         if (++i >= numWords) {
           break;
         }
-        word = ~(*--words);
+        word = ~(array[idx - i]);
       }
       return UINT64_MAX;
     }
@@ -309,15 +317,15 @@ namespace itmmti
      *   Return the largest set bit position smaller than or equal to a given bitPos.
      *   Return UINT64_MAX when the answer is not found after investigating 'numWords' words.
      */
+    template<typename ArrayT>
     inline uint64_t pred_1
     (
-     const uint64_t * words, //!< Pointer to uint64_t array
+     const ArrayT & array,
      const uint64_t bitPos, //!< BitPos specifying the beginning of the bit-region.
      const uint64_t numWords //!< # words to investigate in.
      ) {
       const uint64_t idx = bitPos >> 6;
-      words += idx;
-      auto word = (*words) & UINTW_MAX((bitPos & 0x3f) + 1);
+      auto word = (array[idx]) & bits::UINTW_MAX((bitPos & 0x3f) + 1);
       uint64_t i = 0;
       while (true) {
         if (word) {
@@ -326,7 +334,7 @@ namespace itmmti
         if (++i >= numWords) {
           break;
         }
-        word = *(--words);
+        word = array[idx - i];
       }
       return UINT64_MAX;
     }
@@ -340,15 +348,15 @@ namespace itmmti
      * @pre
      *   Investigating bit-region must not be out-of-bounds.
      */
+    template<typename ArrayT>
     inline uint64_t succ_0
     (
-     const uint64_t * words, //!< Pointer to uint64_t array
-     uint64_t bitPos, //!< BitPos specifying the beginning of the bit-region.
+     const ArrayT & array,
+     const uint64_t bitPos, //!< BitPos specifying the beginning of the bit-region.
      uint64_t numWords //!< # words to investigate in.
      ) {
       const auto idx = bitPos >> 6;
-      words += idx;
-      auto word = ~(*words) & ~UINTW_MAX((bitPos & 0x3f));
+      auto word = ~(array[idx]) & ~bits::UINTW_MAX((bitPos & 0x3f));
       uint64_t i = 0;
       while (true) {
         if (word) {
@@ -357,7 +365,7 @@ namespace itmmti
         if (++i >= numWords) {
           break;
         }
-        word = ~(*++words);
+        word = ~(array[idx + i]);
       }
       return UINT64_MAX;
     }
@@ -371,15 +379,15 @@ namespace itmmti
      * @pre
      *   Investigating bit-region must not be out-of-bounds.
      */
+    template<typename ArrayT>
     inline uint64_t succ_1
     (
-     const uint64_t * words, //!< Pointer to uint64_t array
-     uint64_t bitPos, //!< BitPos specifying the beginning of the bit-region.
+     const ArrayT & array,
+     const uint64_t bitPos, //!< BitPos specifying the beginning of the bit-region.
      uint64_t numWords //!< # words to investigate in.
      ) {
       const auto idx = bitPos >> 6;
-      words += idx;
-      auto word = *words & ~UINTW_MAX((bitPos & 0x3f));
+      auto word = array[idx] & ~bits::UINTW_MAX((bitPos & 0x3f));
       uint64_t i = 0;
       while (true) {
         if (word) {
@@ -388,34 +396,9 @@ namespace itmmti
         if (++i >= numWords) {
           break;
         }
-        word = *(++words);
+        word = array[idx + i];
       }
       return UINT64_MAX;
-    }
-
-
-    /*!
-     * @brief Read 'w'-bits written in the bit-region beginning at p[[offset..]].
-     * @return Value represented by p[[offset..offset+w)).
-     * @pre The bit-region must not be out of bounds.
-     */
-    inline uint64_t readWBitsHead
-    (
-     const uint64_t * p, //!< Pointer to words that contains the beginning of the bit-region.
-     const uint8_t offset, //!< in [0, 64).
-     const uint8_t w, //!< Bit-width in [0, 64].
-     const uint64_t mask //!< UINTW_MAX(w).
-     ) {
-      assert(offset < 64);
-      assert(w <= 64);
-
-      const uint8_t loBits = 64 - offset;
-      uint64_t ret = (*p) >> offset;
-      if (loBits < w) {
-        ++p;
-        ret |= *p << loBits;
-      }
-      return ret & mask;
     }
 
 
@@ -424,39 +407,23 @@ namespace itmmti
      * @return Value represented by p[[bitPos..bitPos+w)).
      * @pre The bit-region must not be out of bounds.
      */
+    template<typename ArrayT>
     inline uint64_t readWBits
     (
-     const uint64_t * p, //!< Pointer to words.
+     const ArrayT & array,
      const uint64_t bitPos, //!< Bit-pos specifying the beginning position of the bit-region
      const uint8_t w, //!< Bit-width in [0, 64].
      const uint64_t mask //!< UINTW_MAX(w).
      ) {
       assert(w <= 64);
 
-      p += (bitPos >> 6);
+      const auto idx = (bitPos >> 6);
       const uint8_t offset = bitPos & 0x3f;
       const uint8_t loBits = 64 - offset;
-      uint64_t ret = (*p) >> offset;
+      uint64_t ret = array[idx] >> offset;
       if (loBits < w) {
-        ++p;
-        ret |= *p << loBits;
+        ret |= array[idx + 1] << loBits;
       }
-      return ret & mask;
-    }
-
-
-    /*!
-     * @brief Simplified version of ::readWBitsHead that can be used when reading bits in a single word.
-     */
-    inline uint64_t readWBitsHead_S
-    (
-     const uint64_t * p, //!< Pointer to the word from which bits are read.
-     const uint8_t offset, //!< in [0, 64).
-     const uint64_t mask //!< UINTW_MAX(w).
-     ) {
-      assert(bits::bitSize(mask) + offset <= 64);
-
-      uint64_t ret = (*p) >> offset;
       return ret & mask;
     }
 
@@ -464,45 +431,18 @@ namespace itmmti
     /*!
      * @brief Simplified version of ::readWBits that can be used when reading bits in a single word.
      */
+    template<typename ArrayT>
     inline uint64_t readWBits_S
     (
-     const uint64_t * p, //!< Pointer to words.
+     const ArrayT & array, //!< Array type that returns uint64_t by [] operator
      const uint64_t bitPos, //!< Bit-pos specifying the beginning position of the bit-region
      const uint64_t mask //!< UINTW_MAX(w).
      ) {
       assert(bits::bitSize(mask) + (bitPos & 0x3f) <= 64);
 
-      p += (bitPos >> 6);
       const uint8_t offset = bitPos & 0x3f;
-      uint64_t ret = (*p) >> offset;
+      uint64_t ret = array[bitPos >> 6] >> offset;
       return ret & mask;
-    }
-
-
-    /*!
-     * @brief Write 'w'-bit value 'val' to the bit-region beginning at p[[offset..]].
-     * @pre The bit-region must not be out of bounds.
-     */
-    inline void writeWBitsHead
-    (
-     const uint64_t val, //!< in [0, 2^w).
-     uint64_t * p, //!< Pointer to words that contains the beginning of the bit-region.
-     const uint8_t offset, //!< in [0, 64).
-     const uint8_t w, //!< Bit-width in [0, 64].
-     const uint64_t mask //!< UINTW_MAX(w).
-     ) {
-      assert(offset < 64);
-      assert(w <= 64);
-      assert(val == 0 || bitSize(val) <= w);
-
-      const uint8_t loBits = 64 - offset;
-      *p &= ~(mask << offset);
-      *p |= (val << offset);
-      if (loBits < w) {
-        ++p;
-        *p &= ~(mask >> loBits);
-        *p |= val >> loBits;
-      }
     }
 
 
@@ -510,10 +450,11 @@ namespace itmmti
      * @brief Write 'w'-bit value 'val' to the bit-region beginning at p[[bitPos..]].
      * @pre The bit-region must not be out of bounds.
      */
+    template<typename ArrayT>
     inline void writeWBits
     (
      const uint64_t val, //!< in [0, 2^w).
-     uint64_t * p, //!< Pointer to words.
+     ArrayT & array, //!< Array type that returns uint64_t & by [] operator
      const uint64_t bitPos, //!< Bit-pos.
      const uint8_t w, //!< Bit-width in [0, 64].
      const uint64_t mask //!< UINTW_MAX(w).
@@ -521,75 +462,57 @@ namespace itmmti
       assert(w <= 64);
       assert(val == 0 || bits::bitSize(val) <= w);
 
-      p += (bitPos >> 6);
+      const auto idx = (bitPos >> 6);
       const uint8_t offset = bitPos & 0x3f;
       const uint8_t loBits = 64 - offset;
-      *p &= ~(mask << offset);
-      *p |= (val << offset);
+      array[idx] &= ~(mask << offset);
+      array[idx] |= (val << offset);
       if (loBits < w) {
-        ++p;
-        *p &= ~(mask >> loBits);
-        *p |= val >> loBits;
+        array[idx + 1] &= ~(mask >> loBits);
+        array[idx + 1] |= val >> loBits;
       }
-    }
-
-
-    /*!
-     * @brief Simplified version of ::writeWBitsHead that can be used when writing bits in a single word.
-     */
-    inline void writeWBitsHead_S
-    (
-     const uint64_t val, //!< in [0, 2^w).
-     uint64_t * p, //!< Pointer to the word to which val are written.
-     const uint8_t offset, //!< in [0, 64).
-     const uint64_t mask //!< UINTW_MAX(w).
-     ) {
-      assert(bits::bitSize(mask) + offset <= 64);
-      assert(bits::bitSize(val) <= bits::bitSize(mask));
-
-      *p &= ~(mask << offset);
-      *p |= (val << offset);
     }
 
 
     /*!
      * @brief Simplified version of ::writeWBits that can be used when writing bits in a single word.
      */
+    template<typename ArrayT>
     inline void writeWBits_S
     (
      const uint64_t val, //!< in [0, 2^w).
-     uint64_t * p, //!< Pointer to words.
+     ArrayT & array, //!< Array type that returns uint64_t & by [] operator
      const uint64_t bitPos, //!< Bit-pos.
      const uint64_t mask //!< UINTW_MAX(w).
      ) {
       assert(bits::bitSize(mask) + (bitPos & 0x3f) <= 64);
       assert(bits::bitSize(val) <= bits::bitSize(mask));
 
-      p += (bitPos >> 6);
+      const auto idx = (bitPos >> 6);
       const uint8_t offset = bitPos & 0x3f;
-      *p &= ~(mask << offset);
-      *p |= (val << offset);
+      array[idx] &= ~(mask << offset);
+      array[idx] |= (val << offset);
     }
 
 
+    template<typename SrcArrayT, typename TgtArrayT>
     inline void mvBitsLR_DiffOffs
     (
-     const uint64_t * src,
-     const uint8_t srcOffset,
-     uint64_t * tgt,
-     const uint8_t tgtOffset,
+     const SrcArrayT & src,
+     const uint64_t srcBitPos,
+     TgtArrayT & tgt,
+     const uint64_t tgtBitPos,
      uint64_t bitLen
      ) {
-      assert(src > tgt || (src == tgt && srcOffset >= tgtOffset) //! @pre "position of src-region" >= "position of tgt-region".
-             || static_cast<uint64_t>(tgt - src) * 64 + tgtOffset >= bitLen + srcOffset); //! @pre src-region and tgt-region are non-overlapping.
-      assert(srcOffset != tgtOffset); //! @pre "srcOffset" and "tgtOffset" are different.
-      assert(srcOffset <= 63);
-      assert(tgtOffset <= 63);
+      uint64_t src_i = srcBitPos / 64;
+      uint64_t tgt_i = tgtBitPos / 64;
+      uint8_t srcOffset = srcBitPos % 64;
+      uint8_t tgtOffset = tgtBitPos % 64;
 
       uint8_t diff1, diff2;
-      uint64_t val = *src >> srcOffset;
+      uint64_t val = src[src_i] >> srcOffset;
       val <<= tgtOffset;
-      val |= *tgt & UINTW_MAX(tgtOffset);
+      val |= tgt[tgt_i] & bits::UINTW_MAX(tgtOffset);
       bitLen += tgtOffset;
       if (srcOffset > tgtOffset) {
         diff1 = srcOffset - tgtOffset;
@@ -597,128 +520,141 @@ namespace itmmti
         if (bitLen <= diff2) {
           goto last;
         }
-        val |= *++src << diff2;
+        val |= src[++src_i] << diff2;
       } else {
         diff2 = tgtOffset - srcOffset;
         diff1 = 64 - diff2;
       }
       while (bitLen > 64) {
-        *tgt++ = val;
+        tgt[tgt_i++] = val;
         bitLen -= 64;
-        val = *src >> diff1;
+        val = src[src_i] >> diff1;
         if (bitLen <= diff2) { goto last; }
-        val |= *++src << diff2;
+        val |= src[++src_i] << diff2;
       }
     last:
       assert(bitLen <= 64);
-      const uint64_t mask = UINTW_MAX(static_cast<uint8_t>(bitLen));
-      *tgt &= ~mask;
-      *tgt |= val & mask;
+      const uint64_t mask = bits::UINTW_MAX(static_cast<uint8_t>(bitLen));
+      tgt[tgt_i] &= ~mask;
+      tgt[tgt_i] |= val & mask;
     }
 
 
+    template<typename SrcArrayT, typename TgtArrayT>
     inline void mvBitsRL_DiffOffs
     (
-     const uint64_t * src,
-     uint8_t srcOffset,
-     uint64_t * tgt,
-     uint8_t tgtOffset,
+     const SrcArrayT & src,
+     const uint64_t srcBitPos,
+     TgtArrayT & tgt,
+     const uint64_t tgtBitPos,
      uint64_t bitLen
      ) {
-      assert(src < tgt || (src == tgt && srcOffset < tgtOffset)); //! @pre "position of src-region" < "position of tgt-region"
-      assert(srcOffset != tgtOffset); //! @pre 'srcOffset' and 'tgtOffset' are different.
-      assert(srcOffset <= 63);
-      assert(tgtOffset <= 63);
+      assert(srcBitPos > bitLen);
+      assert(tgtBitPos > bitLen);
+
+      uint64_t src_i = srcBitPos / 64;
+      uint64_t tgt_i = tgtBitPos / 64;
+      uint8_t srcOffset = srcBitPos % 64;
+      uint8_t tgtOffset = tgtBitPos % 64;
 
       if (srcOffset == 0) {
         srcOffset = 64;
-        --src;
+        --src_i;
       } else if (tgtOffset == 0) {
         tgtOffset = 64;
-        --tgt;
+        --tgt_i;
       }
       uint8_t diff1, diff2;
-      uint64_t val = *tgt & ~UINTW_MAX(tgtOffset);
+      uint64_t val = tgt[tgt_i] & ~bits::UINTW_MAX(tgtOffset);
       bitLen += 64 - tgtOffset;
       if (srcOffset > tgtOffset) {
         diff2 = srcOffset - tgtOffset;
         diff1 = 64 - diff2;
-        val |= (*src & UINTW_MAX(srcOffset)) >> diff2;
+        val |= (src[src_i] & bits::UINTW_MAX(srcOffset)) >> diff2;
       } else {
         diff1 = tgtOffset - srcOffset;
         diff2 = 64 - diff1;
-        val |= (*src & UINTW_MAX(srcOffset)) << diff1;
+        val |= (src[src_i] & bits::UINTW_MAX(srcOffset)) << diff1;
         if (bitLen <= diff2) {
           goto last;
         }
-        val |= *(--src) >> diff2;
+        val |= src[--src_i] >> diff2;
       }
       while (bitLen > 64) {
-        *tgt-- = val;
+        tgt[tgt_i--] = val;
         bitLen -= 64;
-        val = *src << diff1;
+        val = src[src_i] << diff1;
         if (bitLen <= diff2) { goto last; }
-        val |= *(--src) >> diff2;
+        val |= (src[--src_i]) >> diff2;
       }
     last:
       assert(64 - bitLen <= 64);
-      const uint64_t mask = UINTW_MAX(static_cast<uint8_t>(64 - bitLen));
-      *tgt &= mask;
-      *tgt |= val & ~mask;
+      const uint64_t mask = bits::UINTW_MAX(static_cast<uint8_t>(64 - bitLen));
+      tgt[tgt_i] &= mask;
+      tgt[tgt_i] |= val & ~mask;
     }
 
 
+    template<typename SrcArrayT, typename TgtArrayT>
     inline void mvBitsLR_SameOffs
     (
-     const uint64_t * src,
-     uint64_t * tgt,
-     const uint8_t offset,
+     const SrcArrayT & src,
+     const uint64_t srcBitPos,
+     TgtArrayT & tgt,
+     const uint64_t tgtBitPos,
      uint64_t bitLen
      ) {
-      assert(src >= tgt //! @pre "position of src-region" >= "position of tgt-region".
-             || static_cast<uint64_t>(tgt - src) * 64 >= bitLen); //! @pre src-region and tgt-region are non-overlapping.
-      assert(offset <= 63); //! @pre 'offset' in [0..64).
+      assert(srcBitPos % 64 == tgtBitPos % 64);
 
-      const uint64_t mask1 = UINTW_MAX(offset);
-      uint64_t val = *tgt & mask1;
-      val |= *src & ~mask1;
+      uint64_t src_i = srcBitPos / 64;
+      uint64_t tgt_i = tgtBitPos / 64;
+      const uint8_t offset = srcBitPos % 64;
+      const uint64_t mask1 = bits::UINTW_MAX(offset);
+      uint64_t val = tgt[tgt_i] & mask1;
+      val |= src[src_i] & ~mask1;
       for (bitLen += offset; bitLen > 64; bitLen -= 64) {
-        *tgt++ = val;
-        val = *++src;
+        tgt[tgt_i++] = val;
+        val = src[++src_i];
       }
       assert(bitLen <= 64);
-      const uint64_t mask2 = UINTW_MAX(static_cast<uint8_t>(bitLen));
-      *tgt &= ~mask2;
-      *tgt |= val & mask2;
+      const uint64_t mask2 = bits::UINTW_MAX(static_cast<uint8_t>(bitLen));
+      tgt[tgt_i] &= ~mask2;
+      tgt[tgt_i] |= val & mask2;
     }
 
 
+    template<typename SrcArrayT, typename TgtArrayT>
     inline void mvBitsRL_SameOffs
     (
-     const uint64_t * src,
-     uint64_t * tgt,
-     uint8_t offset,
+     const SrcArrayT & src,
+     const uint64_t srcBitPos,
+     TgtArrayT & tgt,
+     const uint64_t tgtBitPos,
      uint64_t bitLen
      ) {
-      assert(src < tgt); //! @pre 'position of src-region' < 'position of tgt-region'.
-      assert(offset <= 63); //! @pre 'offset' in [0..64).
+      assert(srcBitPos % 64 == tgtBitPos % 64);
+      assert(srcBitPos > bitLen);
+      assert(tgtBitPos > bitLen); //! @pre 'offset' in [0..64).
 
+      uint64_t src_i = srcBitPos / 64;
+      uint64_t tgt_i = tgtBitPos / 64;
+      uint8_t offset = srcBitPos % 64;
       if (offset == 0) {
         offset = 64;
-        --src;
-        --tgt;
+        --src_i;
+        --tgt_i;
       }
-      const uint64_t mask1 = UINTW_MAX(offset);
-      uint64_t val = *src & mask1;
-      val |= *tgt & ~mask1;
+      const uint64_t mask1 = bits::UINTW_MAX(offset);
+      uint64_t val = src[src_i] & mask1;
+      val |= tgt[tgt_i] & ~mask1;
       for (bitLen += 64 - offset; bitLen > 64; bitLen -= 64) {
-        *tgt-- = val;
-        val = *--src;
+        tgt[tgt_i--] = val;
+        val = src[--src_i];
       }
       assert(64 - bitLen <= 64);
-      const uint64_t mask2 = UINTW_MAX(static_cast<uint8_t>(64 - bitLen));
-      *tgt &= mask2;
-      *tgt |= val & ~mask2;
+      const uint64_t mask2 = bits::UINTW_MAX(static_cast<uint8_t>(64 - bitLen));
+      tgt[tgt_i] &= mask2;
+      tgt[tgt_i] |= val & ~mask2;
     }
 
 
@@ -727,21 +663,19 @@ namespace itmmti
      * @attention
      *   This function should be used when bits are moved backwardly, i.e., "position of src-region" >= "position of tgt-region", or non-overlapping.
      */
+    template<typename SrcArrayT, typename TgtArrayT>
     inline void mvBitsLR
     (
-     const uint64_t * src,
-     const uint8_t srcOffset,
-     uint64_t * tgt,
-     const uint8_t tgtOffset,
-     const uint64_t bitLen
+     const SrcArrayT & src,
+     const uint64_t srcBitPos,
+     TgtArrayT & tgt,
+     const uint64_t tgtBitPos,
+     uint64_t bitLen
      ) {
-      assert(src > tgt || (src == tgt && srcOffset >= tgtOffset) //! @pre "position of src-region" >= "position of tgt-region".
-             || static_cast<uint64_t>(tgt - src) * 64 + tgtOffset <= bitLen + srcOffset); //! @pre src-region and tgt-region are non-overlapping.
-
-      if (srcOffset != tgtOffset) {
-        mvBitsLR_DiffOffs(src, srcOffset, tgt, tgtOffset, bitLen);
+      if (srcBitPos % 64 != tgtBitPos % 64) {
+        mvBitsLR_DiffOffs(src, srcBitPos, tgt, tgtBitPos, bitLen);
       } else {
-        mvBitsLR_SameOffs(src, tgt, srcOffset, bitLen);
+        mvBitsLR_SameOffs(src, srcBitPos, tgt, tgtBitPos, bitLen);
       }
     }
 
@@ -752,20 +686,19 @@ namespace itmmti
      * @attention Src-region is designated by the bit-region *ending (excluded)* at 'srcOffset' bit of 'src' and of length 'bitLen'.
      *            Tgt-region is similarly defined.
      */
+    template<typename SrcArrayT, typename TgtArrayT>
     inline void mvBitsRL
     (
-     const uint64_t * src,
-     const uint8_t srcOffset,
-     uint64_t * tgt,
-     const uint8_t tgtOffset,
-     const uint64_t bitLen
+     const SrcArrayT & src,
+     const uint64_t srcBitPos,
+     TgtArrayT & tgt,
+     const uint64_t tgtBitPos,
+     uint64_t bitLen
      ) {
-      assert(src < tgt || (src == tgt && srcOffset < tgtOffset)); //! @pre "position of src-region" < "position of tgt-region"
-
-      if (srcOffset != tgtOffset) {
-        mvBitsRL_DiffOffs(src, srcOffset, tgt, tgtOffset, bitLen);
+      if (srcBitPos % 64 != tgtBitPos % 64) {
+        mvBitsRL_DiffOffs(src, srcBitPos, tgt, tgtBitPos, bitLen);
       } else {
-        mvBitsRL_SameOffs(src, tgt, srcOffset, bitLen);
+        mvBitsRL_SameOffs(src, srcBitPos, tgt, tgtBitPos, bitLen);
       }
     }
 
@@ -779,44 +712,48 @@ namespace itmmti
      *   - move bits forwardly or backwardly.
      *   - offsets are same or not.
      */
+    template<typename SrcArrayT, typename TgtArrayT>
     inline void mvBits
     (
-     const uint64_t * src,
-     const uint8_t srcOffset,
-     uint64_t * tgt,
-     const uint8_t tgtOffset,
-     const uint64_t bitLen
+     const SrcArrayT & src,
+     const uint64_t srcBitPos,
+     TgtArrayT & tgt,
+     const uint64_t tgtBitPos,
+     uint64_t bitLen
      ) {
-      if (src < tgt || (src == tgt && srcOffset < tgtOffset)) {
-        const uint64_t srcBits = bitLen + srcOffset; // 'src + srcBitLen' points to the end bit position of src-region
-        const uint64_t tgtBits = bitLen + tgtOffset;
-        mvBitsRL(src + (srcBits >> 6), srcBits & 0x3f, tgt + (tgtBits >> 6), tgtBits & 0x3f, bitLen);
+      if (srcBitPos >= tgtBitPos) {
+        mvBitsLR(src, srcBitPos, tgt, tgtBitPos, bitLen);
       } else {
-        mvBitsLR(src, srcOffset, tgt, tgtOffset, bitLen);
+        mvBitsRL(src, srcBitPos + bitLen, tgt, tgtBitPos + bitLen, bitLen);
       }
     }
 
 
+    template<typename SrcArrayT, typename TgtArrayT>
     inline void cpBits_DiffOffs
     (
-     const uint64_t * src,
-     const uint8_t srcOffset,
-     uint64_t * tgt,
-     const uint8_t tgtOffset,
+     const SrcArrayT & src,
+     const uint64_t srcBitPos,
+     TgtArrayT & tgt,
+     const uint64_t tgtBitPos,
      uint64_t bitLen
      ) {
-      mvBitsLR_DiffOffs(src, srcOffset, tgt, tgtOffset, bitLen);
+      mvBitsLR_DiffOffs(src, srcBitPos, tgt, tgtBitPos, bitLen);
     }
 
 
+    template<typename SrcArrayT, typename TgtArrayT>
     inline void cpBits_SameOffs
     (
-     const uint64_t * src,
-     uint64_t * tgt,
-     const uint8_t offset,
+     const SrcArrayT & src,
+     const uint64_t srcBitPos,
+     TgtArrayT & tgt,
+     const uint64_t tgtBitPos,
      uint64_t bitLen
      ) {
-      mvBitsLR_SameOffs(src, tgt, offset, bitLen);
+      assert(srcBitPos % 64 == tgtBitPos % 64);
+
+      mvBitsLR_SameOffs(src, srcBitPos, tgt, tgtBitPos, bitLen);
     }
 
 
@@ -825,15 +762,16 @@ namespace itmmti
      * @attention
      *   This function should be used when bits are moved backwardly, i.e., "position of src-region" >= "position of tgt-region", or non-overlapping.
      */
+    template<typename SrcArrayT, typename TgtArrayT>
     inline void cpBits
     (
-     const uint64_t * src,
-     const uint8_t srcOffset,
-     uint64_t * tgt,
-     const uint8_t tgtOffset,
-     const uint64_t bitLen
+     const SrcArrayT & src,
+     const uint64_t srcBitPos,
+     TgtArrayT & tgt,
+     const uint64_t tgtBitPos,
+     uint64_t bitLen
      ) {
-      mvBits(src, srcOffset, tgt, tgtOffset, bitLen);
+      mvBitsLR(src, srcBitPos, tgt, tgtBitPos, bitLen);
     }
 
 

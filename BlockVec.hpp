@@ -38,6 +38,8 @@ namespace itmmti
     // Public constant, alias etc.
     static constexpr uint64_t kBlockSize{tparam_kBlockSize};
 
+
+  private:
     ElemT ** blocks_; //!< Pointers to blocks
     size_t capacity_; //!< Current capacity
     size_t size_; //!< Current size (must be in [0..capacity_]).
@@ -201,7 +203,7 @@ namespace itmmti
     /*!
      * @brief Get const block pointer
      */
-    const ElemT * getBlockPtr
+    const ElemT * getConstBlockPtr
     (
      size_t i
      ) const noexcept {
@@ -235,19 +237,6 @@ namespace itmmti
       assert(i < numBlocksCapacity_);
 
       blocks_[i] = ptr;
-    }
-
-
-    /*!
-     * @brief Calculate total memory usage in bytes.
-     * @attention It is only responsible to space for pointers in blocks_.
-     */
-    size_t calcMemBytes
-    (
-     bool includeThis = true
-     ) const noexcept {
-      size_t size = sizeof(*this) * includeThis;
-      return size + sizeof(ElemT *) * numBlocksCapacity_;
     }
 
 
@@ -324,6 +313,19 @@ namespace itmmti
       assert(givenNumBlocks <= numBlocks_);
 
       numBlocks_ = givenNumBlocks;
+    }
+
+
+    /*!
+     * @brief Calculate total memory usage in bytes.
+     * @attention It is only responsible to space for pointers in blocks_.
+     */
+    size_t calcMemBytes
+    (
+     bool includeThis = true
+     ) const noexcept {
+      size_t size = sizeof(*this) * includeThis;
+      return size + sizeof(ElemT *) * numBlocksCapacity_;
     }
 
 

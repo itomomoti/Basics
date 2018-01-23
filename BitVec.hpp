@@ -292,7 +292,7 @@ namespace itmmti
      ) {
       assert(tgtBitPos + bitLen <= capacity_);
 
-      bits::mvBits(src + (srcBitPos / 64), srcBitPos % 64, array_ + (tgtBitPos / 64), tgtBitPos % 64, bitLen);
+      bits::mvBits(src, srcBitPos, array_, tgtBitPos, bitLen);
     }
 
 

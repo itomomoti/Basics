@@ -287,7 +287,7 @@ namespace itmmti
       const auto idxT = pos / BSIZE_T;
       const auto remT = pos % BSIZE_T;
       const auto idxM = (pos / BSIZE_M) - idxT;
-      const uint16_t onesLastBlockM = static_cast<uint16_t>(bits::cnt_1(bv_.getConstArrayPtr() + pos / BSIZE_M * BSIZE_M / 64, pos % BSIZE_M));
+      const uint16_t onesLastBlockM = static_cast<uint16_t>(bits::cnt_1(bv_.getConstArrayPtr(), pos / BSIZE_M * BSIZE_M / 64, pos % BSIZE_M));
       const uint16_t onesLastBlockT = (remT >= BSIZE_M)? blockM_[idxM-1] + onesLastBlockM : onesLastBlockM;
       if (remT < BSIZE_T - BSIZE_M) {
         blockM_[idxM] = onesLastBlockT;
@@ -329,7 +329,7 @@ namespace itmmti
       if (remT >= BSIZE_M) {
         rank += (remT / BSIZE_M * BSIZE_M) - blockM_[idxM - 1];
       }
-      return rank + bits::cnt_0(bv_.getConstArrayPtr() + (pos / BSIZE_M * BSIZE_M / 64), pos % BSIZE_M);
+      return rank + bits::cnt_0(bv_.getConstArrayPtr(), pos / BSIZE_M * BSIZE_M / 64, pos % BSIZE_M);
     }
 
 
@@ -349,7 +349,7 @@ namespace itmmti
       if (remT >= BSIZE_M) {
         rank += blockM_[idxM - 1];
       }
-      return rank + bits::cnt_1(bv_.getConstArrayPtr() + (pos / BSIZE_M * BSIZE_M / 64), pos % BSIZE_M);
+      return rank + bits::cnt_1(bv_.getConstArrayPtr(), pos / BSIZE_M * BSIZE_M / 64, pos % BSIZE_M);
     }
 
 
@@ -379,7 +379,7 @@ namespace itmmti
       }
       rank -= (i > 0)? BSIZE_M * i - blockM_[idxM + i - 1] : 0;
       const auto posM = posT + i * BSIZE_M;
-      return posM + bits::sel_0(bv_.getConstArrayPtr() + (posM / 64), rank);
+      return posM + bits::sel_0(bv_.getConstArrayPtr(), posM / 64, rank);
     }
 
 
@@ -410,7 +410,7 @@ namespace itmmti
         }
         rank -= (i > 0)? blockM_[idxM + i - 1] : 0;
         const auto posM = posT + i * BSIZE_M;
-        return posM + bits::sel_1(bv_.getConstArrayPtr() + (posM / 64), rank);
+        return posM + bits::sel_1(bv_.getConstArrayPtr(), posM / 64, rank);
       }
 
 
@@ -428,7 +428,7 @@ namespace itmmti
       }
       rank -= (i > 0)? blockM_[idxM + i - 1] : 0;
       const auto posM = posT + i * BSIZE_M;
-      return posM + bits::sel_1(bv_.getConstArrayPtr() + (posM / 64), rank);
+      return posM + bits::sel_1(bv_.getConstArrayPtr(), posM / 64, rank);
     }
 
 
