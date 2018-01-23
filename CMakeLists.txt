@@ -85,6 +85,9 @@ if(TESTING OR TESTING_ALL)
 
     add_test(NAME BasicSearch_Benchmark COMMAND BasicSearch_Benchmark)
     set_tests_properties(BasicSearch_Benchmark PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;Error;error")
+
+    add_test(NAME BlockVec_Benchmark COMMAND BlockVec_Benchmark)
+    set_tests_properties(BlockVec_Benchmark PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;Error;error")
   endif()
 endif()
 

@@ -37,6 +37,7 @@ add_executable(StepCode_Test ${CMAKE_CURRENT_SOURCE_DIR}/StepCode_Test.cpp ${CMA
 add_executable(BitsUtil_Benchmark ${CMAKE_CURRENT_SOURCE_DIR}/BitsUtil_Benchmark.cpp ${CMAKE})
 add_executable(WBitsVec_Benchmark ${CMAKE_CURRENT_SOURCE_DIR}/WBitsVec_Benchmark.cpp ${CMAKE})
 add_executable(BasicSearch_Benchmark ${CMAKE_CURRENT_SOURCE_DIR}/BasicSearch_Benchmark.cpp ${CMAKE})
+add_executable(BlockVec_Benchmark ${CMAKE_CURRENT_SOURCE_DIR}/BlockVec_Benchmark.cpp ${CMAKE})
 
 #### Link libraries
 target_link_libraries(WBitsVec_Test Basics gtest gtest_main pthread)
@@ -48,3 +49,4 @@ target_link_libraries(StepCode_Test Basics gtest gtest_main pthread)
 target_link_libraries(BitsUtil_Benchmark Basics)
 target_link_libraries(WBitsVec_Benchmark Basics)
 target_link_libraries(BasicSearch_Benchmark Basics)
+target_link_libraries(BlockVec_Benchmark Basics)
