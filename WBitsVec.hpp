@@ -192,7 +192,7 @@ namespace itmmti
      const uint64_t num //!< Number of elements to move.
      ) {
       assert(src.w_ == tgt.w_);
-      if (src.array_ + src.pos_ >= tgt.array_ + tgt.pos_) {
+      if (src.pos_ >= tgt.pos_) {
         bits::mvBitsLR(src.array_, src.pos_, tgt.array_, tgt.pos_, num * src.w_);
       } else {
         bits::mvBitsRL(src.array_, src.pos_, tgt.array_, tgt.pos_, num * src.w_);
