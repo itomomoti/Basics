@@ -1,15 +1,10 @@
-#include "BitsUtil.hpp"
 #include <stdint.h>
-
-
-#define BMTEST_BitsUtil
-#ifdef BMTEST_BitsUtil
 #include <iostream>
 #include <iomanip>
+#include <chrono>
 #include "cmdline.h"
 #include "BitsUtil.hpp"
 #include "MemUtil.hpp"
-#include <chrono>
 
 using namespace itmmti;
 
@@ -84,6 +79,76 @@ int main(int argc, char *argv[])
     }
     std::cout << std::fixed << std::setprecision(8) << (time / rep) << std::endl;
   }
-}
 
-#endif
+  {
+    std::cout << "mvBitsLR: microseconds to copy " << num << " uint64_t values" << std::endl;
+    double time = 0;
+    for (uint64_t r = 0; r < rep; ++r) {
+      auto t1 = std::chrono::high_resolution_clock::now();
+      bits::mvBitsLR(array0, 0, array1, 64, (num - 1) * 64);
+      auto t2 = std::chrono::high_resolution_clock::now();
+      time += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+      uint64_t checksum = 0;
+      for (uint64_t i = 1; i < num; ++i) {
+        checksum += array1[i];
+      }
+      checksum += array0[num - 1];
+      if (checksum0 != checksum) {
+        std::cout << std::endl << "error: checksum = " << checksum << " should be " << checksum0 << std::endl;
+      }
+    }
+    std::cout << std::fixed << std::setprecision(8) << (time / rep) << std::endl;
+  }
+
+  {
+    std::cout << "mvBitsRL: microseconds to copy " << num << " uint64_t values" << std::endl;
+    double time = 0;
+    for (uint64_t r = 0; r < rep; ++r) {
+      bits::cpBytes(array0, array1, num * 8);
+      auto t1 = std::chrono::high_resolution_clock::now();
+      bits::mvBitsRL(array1, 0, array1, 64, (num - 1) * 64);
+      auto t2 = std::chrono::high_resolution_clock::now();
+      time += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+      uint64_t checksum = 0;
+      for (uint64_t i = 1; i < num; ++i) {
+        checksum += array1[i];
+      }
+      checksum += num - 1;
+      if (checksum0 != checksum) {
+        std::cout << std::endl << "error: checksum = " << checksum << " should be " << checksum0 << std::endl;
+      }
+    }
+    std::cout << std::fixed << std::setprecision(8) << (time / rep) << std::endl;
+  }
+
+  {
+    std::cout << "check mvBits: " << num << " uint64_t values" << std::endl;
+    double time = 0;
+    for (uint64_t r = 0; r < rep; ++r) {
+      bits::cpBytes(array0, array1, num * 8);
+      auto t1 = std::chrono::high_resolution_clock::now();
+      bits::mvBits(array1, 64, array1, 63, (num - 1) * 64);
+      bits::mvBits(array1, 63, array1, 61, (num - 1) * 64);
+      bits::mvBits(array1, 61, array1, 58, (num - 1) * 64);
+      bits::mvBits(array1, 58, array1, 54, (num - 1) * 64);
+      bits::mvBits(array1, 54, array1, 49, (num - 1) * 64);
+      bits::mvBits(array1, 49, array1, 43, (num - 1) * 64);
+      bits::mvBits(array1, 43, array1, 36, (num - 1) * 64);
+      bits::mvBits(array1, 36, array1, 64, (num - 1) * 64);
+      auto t2 = std::chrono::high_resolution_clock::now();
+      time += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+      uint64_t checksum = 0;
+      for (uint64_t i = 1; i < num; ++i) {
+        checksum += array1[i];
+      }
+      checksum += array0[0];
+      if (checksum0 != checksum) {
+        std::cout << std::endl << "error: checksum = " << checksum << " should be " << checksum0 << std::endl;
+      }
+    }
+    std::cout << std::fixed << std::setprecision(8) << (time / rep) << std::endl;
+  }
+
+  memutil::safefree(array0);
+  memutil::safefree(array1);
+}

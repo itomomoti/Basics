@@ -549,13 +549,13 @@ namespace itmmti
      const uint64_t tgtBitPos,
      uint64_t bitLen
      ) {
-      assert(srcBitPos > bitLen);
-      assert(tgtBitPos > bitLen);
+      assert(srcBitPos >= bitLen);
+      assert(tgtBitPos >= bitLen);
 
-      uint64_t src_i = srcBitPos / 64;
-      uint64_t tgt_i = tgtBitPos / 64;
-      uint8_t srcOffset = srcBitPos % 64;
-      uint8_t tgtOffset = tgtBitPos % 64;
+      uint64_t src_i = (srcBitPos + bitLen) / 64;
+      uint64_t tgt_i = (tgtBitPos + bitLen) / 64;
+      uint8_t srcOffset = (srcBitPos + bitLen) % 64;
+      uint8_t tgtOffset = (tgtBitPos + bitLen) % 64;
 
       if (srcOffset == 0) {
         srcOffset = 64;
@@ -633,12 +633,12 @@ namespace itmmti
      uint64_t bitLen
      ) {
       assert(srcBitPos % 64 == tgtBitPos % 64);
-      assert(srcBitPos > bitLen);
-      assert(tgtBitPos > bitLen); //! @pre 'offset' in [0..64).
+      assert(srcBitPos >= bitLen);
+      assert(tgtBitPos >= bitLen);
 
-      uint64_t src_i = srcBitPos / 64;
-      uint64_t tgt_i = tgtBitPos / 64;
-      uint8_t offset = srcBitPos % 64;
+      uint64_t src_i = (srcBitPos + bitLen) / 64;
+      uint64_t tgt_i = (tgtBitPos + bitLen) / 64;
+      uint8_t offset = (srcBitPos + bitLen) % 64;
       if (offset == 0) {
         offset = 64;
         --src_i;
@@ -724,7 +724,7 @@ namespace itmmti
       if (srcBitPos >= tgtBitPos) {
         mvBitsLR(src, srcBitPos, tgt, tgtBitPos, bitLen);
       } else {
-        mvBitsRL(src, srcBitPos + bitLen, tgt, tgtBitPos + bitLen, bitLen);
+        mvBitsRL(src, srcBitPos, tgt, tgtBitPos, bitLen);
       }
     }
 
