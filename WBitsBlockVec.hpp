@@ -58,20 +58,22 @@ namespace itmmti
       assert(capacity <= ctcbits::UINTW_MAX(58));
       assert(0 < w && w <= 64);
 
-      const size_t numUint = (capacity * w_ + 63) / 64; // +63 for roundup
-      while (numUint > vec_.capacity()) {
-        vec_.appendBlock();
-      }
-      capacity_ = (vec_.capacity() * 64) / w_;
+      reserve(capacity);
     }
 
 
     ~WBitsBlockVec()
     {
+      clearAll();
+    }
+
+
+    void clearAll() {
       for (uint64_t i = 0; i < vec_.getNumBlocks(); ++i) {
-        free(vec_.getBlockPtr(i));
+        delete[] vec_.getBlockPtr(i);
       }
-      //// vec_ is freed by its deconstructor
+      vec_.freeBlocksPtrArray();
+      capacity_ = size_ = 0;
     }
 
 
@@ -219,7 +221,7 @@ namespace itmmti
      bool includeThis = true
      ) const noexcept {
       size_t size = sizeof(*this) * includeThis;
-      return size + calcMemBytes(vec_) + (sizeof(uint64_t) * vec_.getNumBlocks() * kBlockSize);
+      return size + vec_.calcMemBytes(false) + (sizeof(uint64_t) * vec_.getNumBlocks() * kBlockSize);
     }
 
 
@@ -254,6 +256,23 @@ namespace itmmti
       const size_t numUint = (newSize * w_ + 63) / 64; // +63 for roundup
       vec_.resize(numUint);
       size_ = newSize;
+      capacity_ = (vec_.capacity() * 64) / w_;
+    }
+
+
+    /*!
+     * @brief Reserve
+     */
+    void reserve
+    (
+     const size_t givenCapacity
+     ) {
+      assert(givenCapacity <= ctcbits::UINTW_MAX(58));
+
+      const size_t numUint = (givenCapacity * w_ + 63) / 64; // +63 for roundup
+      while (numUint > vec_.capacity()) {
+        vec_.appendBlock();
+      }
       capacity_ = (vec_.capacity() * 64) / w_;
     }
 
