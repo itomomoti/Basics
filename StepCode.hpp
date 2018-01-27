@@ -20,7 +20,6 @@
 #include <iterator>
 #include <algorithm>
 
-#include "BitVec.hpp"
 #include "BitsUtil.hpp"
 #include "MemUtil.hpp"
 
