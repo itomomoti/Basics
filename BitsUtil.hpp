@@ -549,9 +549,6 @@ namespace itmmti
      const uint64_t tgtBitPos,
      uint64_t bitLen
      ) {
-      assert(srcBitPos >= bitLen);
-      assert(tgtBitPos >= bitLen);
-
       uint64_t src_i = (srcBitPos + bitLen) / 64;
       uint64_t tgt_i = (tgtBitPos + bitLen) / 64;
       uint8_t srcOffset = (srcBitPos + bitLen) % 64;
@@ -633,8 +630,6 @@ namespace itmmti
      uint64_t bitLen
      ) {
       assert(srcBitPos % 64 == tgtBitPos % 64);
-      assert(srcBitPos >= bitLen);
-      assert(tgtBitPos >= bitLen);
 
       uint64_t src_i = (srcBitPos + bitLen) / 64;
       uint64_t tgt_i = (tgtBitPos + bitLen) / 64;
