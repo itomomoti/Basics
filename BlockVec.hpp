@@ -66,7 +66,7 @@ namespace itmmti
 
     void freeBlocksPtrArray() {
       memutil::safefree(blocks_);
-      capacity_ = size_ = 0;
+      capacity_ = size_ = numBlocksCapacity_ = numBlocks_ = 0;
     }
 
 
@@ -282,7 +282,7 @@ namespace itmmti
         numBlocksCapacity_ = numBlocks_ * 2;
         memutil::realloc_AbortOnFail<ElemT *>(blocks_, numBlocksCapacity_);
       }
-      blocks_[numBlocks_ - 1] = memutil::malloc_AbortOnFail<ElemT>(kBlockSize);
+      blocks_[numBlocks_ - 1] = new ElemT[kBlockSize];
       capacity_ += kBlockSize;
     }
 
