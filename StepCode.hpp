@@ -286,7 +286,7 @@ namespace itmmti
    *   Suppose that i-th (0base) uint occupies w_i bits (remark that w_i in {4, 8, 12, 16, ..., 64}).
    *   w_i/4 - 1 is called wCode of w_i (remark that w_i/4 - 1 in {0, 1, 2, 3, ..., 7}). wCodes are stored in wCodes_ using 4 bits each.
    */
-  template <uint32_t kMaxNum>
+  template<uint32_t kMaxNum>
   class StepCodeCore
   {
   private:
@@ -300,7 +300,7 @@ namespace itmmti
     }
 
 
-    template <typename SizeT>
+    template<typename SizeT>
     StepCodeCore
     (
      SizeT & bitCapacity, //!< [in,out] Give bit capacity. It will be modified.
@@ -323,7 +323,7 @@ namespace itmmti
      * @attention
      *   Since the contents of "other" are copied, it may take time when other.size_ is large.
      */
-    template <typename SizeT>
+    template<typename SizeT>
     StepCodeCore
     (
      const StepCodeCore & other, //!< Other StepCodeCore object.
@@ -337,7 +337,7 @@ namespace itmmti
     }
 
 
-    template <typename SizeT>
+    template<typename SizeT>
     void cpStepCodeCore
     (
      const StepCodeCore & other, //!< Other StepCodeCore object.
@@ -365,7 +365,7 @@ namespace itmmti
      * @attention
      *   "other" is initialized to an object with capacity = 0.
      */
-    template <typename SizeT>
+    template<typename SizeT>
     StepCodeCore
     (
      StepCodeCore && other, //!< Other StepCodeCore object.
@@ -380,7 +380,7 @@ namespace itmmti
     }
 
 
-    template <typename SizeT>
+    template<typename SizeT>
     void mvStepCodeCore
     (
      StepCodeCore && other, //!< Other StepCodeCore object.
@@ -780,7 +780,7 @@ namespace itmmti
    *   Suppose that i-th (0base) uint occupies w_i bits (remark that w_i in {4, 8, 12, 16, ..., 64}).
    *   w_i/4 - 1 is called wCode of w_i (remark that w_i/4 - 1 in {0, 1, 2, 3, ..., 7}). wCodes are stored in wCodes_ using 4 bits each.
    */
-  template <uint32_t kMaxNum, typename SizeT = uint32_t>
+  template<uint32_t kMaxNum, typename SizeT = uint32_t>
   class StepCode
   {
   private:
