@@ -86,6 +86,25 @@ namespace itmmti
   }
 
 
+  TEST_F(WBitsBlockVecTest, ReadWriteSubscript)
+  {
+    size_t num = 2000;
+
+    for (uint8_t w = 1; w <= 64; ++w) {
+      WBitsBlockVecT wbv(w, num);
+      wbv.resize(num);
+      // std::cout << "calcMemBytes [w = " << static_cast<uint32_t>(wbv.getW()) << "]: " << wbv.calcMemBytes()
+      //           << "bytes, size / capacity_: " << wbv.size() << " / " << wbv.capacity() << std::endl;
+      for (uint64_t j = 0; j < num; ++j) {
+        wbv[j] = (UINT64_C(1) << (j % 64)) & bits::UINTW_MAX(w);
+      }
+      for (uint64_t j = 0; j < num; ++j) {
+        ASSERT_EQ((UINT64_C(1) << (j % 64)) & bits::UINTW_MAX(w), wbv[j]);
+      }
+    }
+  }
+
+
   TEST_F(WBitsBlockVecTest, ChangeW)
   {
     size_t num = 2000;

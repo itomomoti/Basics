@@ -21,11 +21,13 @@
 #include <algorithm>
 
 #include "BitsUtil.hpp"
+#include "ArrayUtil.hpp"
 #include "MemUtil.hpp"
 
 namespace itmmti
 {
   class WBitsVec;
+
 
   /*!
    * @brief Iterator for WBitsVec.
@@ -42,6 +44,7 @@ namespace itmmti
     uint64_t * array_;
     uint64_t pos_;
     uint8_t w_;
+
 
   public:
     /*!
@@ -81,7 +84,7 @@ namespace itmmti
 
     ////// operator
     //// *itr
-    uint64_t operator*() {
+    uint64_t operator*() const {
       return this->read();
     }
 
@@ -267,6 +270,7 @@ namespace itmmti
 
 
 
+
   /*!
    * @brief W-bits packed vector. Bit-width 'w' and capacity can be changed dynamically.
    * @attention
@@ -274,13 +278,16 @@ namespace itmmti
    */
   class WBitsVec
   {
+  public:
+    using iterator = WBitsVecIterator;
+
+
+  private:
     uint64_t * array_; //!< Array to store values.
     size_t capacity_; //!< Current capacity (must be in [0, 2^58)). It is guaranteed that the reserved space can accomodate 'capacity_ * w_' bits.
     size_t size_; //!< Current size (must be in [0, capacity_]).
     uint8_t w_; //!< Current bit-width (must be in [1, 64]).
 
-  public:
-    using iterator = WBitsVecIterator;
 
   public:
     WBitsVec
@@ -376,6 +383,17 @@ namespace itmmti
         other.size_ = other.capacity_ = 0;
       }
       return *this;
+    }
+
+
+    /*!
+     * @brief Array subscript for writing
+     */
+    array_util::PackedArrayTypeValRef<WBitsVec> operator[]
+    (
+     const size_t idx
+     ) {
+      return array_util::PackedArrayTypeValRef<WBitsVec>(this, idx);
     }
 
 
