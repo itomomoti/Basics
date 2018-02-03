@@ -22,6 +22,7 @@
 
 #include "BlockVec.hpp"
 #include "BitsUtil.hpp"
+#include "ArrayUtil.hpp"
 #include "MemUtil.hpp"
 
 namespace itmmti
@@ -143,6 +144,17 @@ namespace itmmti
         other.size_ = other.capacity_ = 0;
       }
       return *this;
+    }
+
+
+    /*!
+     * @brief Array subscript for writing
+     */
+    array_util::PackedArrayTypeValRef<WBitsBlockVec> operator[]
+    (
+     const size_t idx
+     ) {
+      return array_util::PackedArrayTypeValRef<WBitsBlockVec>(this, idx);
     }
 
 

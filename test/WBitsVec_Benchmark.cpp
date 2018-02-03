@@ -73,27 +73,6 @@ int main(int argc, char *argv[])
   }
   std::cout << std::endl;
 
-  std::cout << "sequential write (itr): " << std::endl;
-  for (uint8_t w = 6; w <= 58; w += 7) {
-    w += dummy;
-    wbVec.resize(0);
-    wbVec.convert(w);
-
-    double time = 0;
-    for (uint64_t r = 0; r < rep; ++r) {
-      auto t1 = std::chrono::high_resolution_clock::now();
-      auto itr = wbVec.begin();
-      for (uint64_t i = 0; i < num; ++i, ++itr) {
-        itr.write(val);
-      }
-      auto t2 = std::chrono::high_resolution_clock::now();
-      time += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
-    }
-    std::cout << "[" << static_cast<uint64_t>(w) << "] " << std::fixed << std::setprecision(8) << (time / (rep * num)) << "; ";
-  }
-  std::cout << std::endl;
-
-
   std::cout << "sequential read: " << std::endl;
   for (uint8_t w = 6; w <= 58; w += 7) {
     w += dummy;
@@ -125,6 +104,60 @@ int main(int argc, char *argv[])
   }
   std::cout << std::endl;
 
+  std::cout << "sequential read with [] operator: " << std::endl;
+  for (uint8_t w = 6; w <= 58; w += 7) {
+    w += dummy;
+    wbVec.resize(0);
+    wbVec.convert(w);
+    const uint64_t valMask = bits::UINTW_MAX(w);
+    uint64_t checksum0 = 0;
+    for (uint64_t i = 0; i < num; ++i) {
+      checksum0 += i & valMask;
+    }
+    for (uint64_t i = 0; i < num; ++i) { // write some values for checksum
+      wbVec[i] = i & valMask;
+    }
+
+    double time = 0;
+    for (uint64_t r = 0; r < rep; ++r) {
+      uint64_t checksum = 0;
+      auto t1 = std::chrono::high_resolution_clock::now();
+      for (uint64_t i = 0; i < num; ++i) {
+        checksum += wbVec[i];
+      }
+      auto t2 = std::chrono::high_resolution_clock::now();
+      time += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+      if (checksum0 != checksum) {
+        std::cout << std::endl << "error: checksum = " << checksum << " should be " << checksum0 << std::endl;
+      }
+    }
+    std::cout << "[" << static_cast<uint64_t>(w) << "] " << std::fixed << std::setprecision(8) << (time / (rep * num)) << "; ";
+  }
+  std::cout << std::endl;
+
+
+
+
+  std::cout << "sequential write (itr): " << std::endl;
+  for (uint8_t w = 6; w <= 58; w += 7) {
+    w += dummy;
+    wbVec.resize(0);
+    wbVec.convert(w);
+
+    double time = 0;
+    for (uint64_t r = 0; r < rep; ++r) {
+      auto t1 = std::chrono::high_resolution_clock::now();
+      auto itr = wbVec.begin();
+      for (uint64_t i = 0; i < num; ++i, ++itr) {
+        itr.write(val);
+      }
+      auto t2 = std::chrono::high_resolution_clock::now();
+      time += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    }
+    std::cout << "[" << static_cast<uint64_t>(w) << "] " << std::fixed << std::setprecision(8) << (time / (rep * num)) << "; ";
+  }
+  std::cout << std::endl;
+
   std::cout << "sequential write: " << std::endl;
   for (uint8_t w = 6; w <= 58; w += 7) {
     w += dummy;
@@ -143,6 +176,26 @@ int main(int argc, char *argv[])
     std::cout << "[" << static_cast<uint64_t>(w) << "] " << std::fixed << std::setprecision(8) << (time / (rep * num)) << "; ";
   }
   std::cout << std::endl;
+
+  std::cout << "sequential write with [] operator: " << std::endl;
+  for (uint8_t w = 6; w <= 58; w += 7) {
+    w += dummy;
+    wbVec.resize(0);
+    wbVec.convert(w);
+
+    double time = 0;
+    for (uint64_t r = 0; r < rep; ++r) {
+      auto t1 = std::chrono::high_resolution_clock::now();
+      for (uint64_t i = 0; i < num; ++i) {
+        wbVec[i] = val;
+      }
+      auto t2 = std::chrono::high_resolution_clock::now();
+      time += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    }
+    std::cout << "[" << static_cast<uint64_t>(w) << "] " << std::fixed << std::setprecision(8) << (time / (rep * num)) << "; ";
+  }
+  std::cout << std::endl;
+
 
 
 
@@ -173,6 +226,36 @@ int main(int argc, char *argv[])
   }
   std::cout << std::endl;
 
+  std::cout << "random read with [] operator: " << std::endl;
+  for (uint8_t w = 6; w <= 58; w += 7) {
+    w += dummy;
+    wbVec.resize(0);
+    wbVec.convert(w);
+    const uint64_t valMask = bits::UINTW_MAX(w);
+    for (uint64_t i = 0; i < num; ++i) { // write some values for checksum
+      wbVec[i] = i & valMask;
+    }
+
+    double time = 0;
+    for (uint64_t r = 0; r < rep; ++r) {
+      uint64_t checksum = 0;
+      auto t1 = std::chrono::high_resolution_clock::now();
+      for (uint64_t i = 0, pos = jump & idxMask; i < num; ++i, pos = (pos + jump) & idxMask) {
+        checksum += wbVec[pos];
+      }
+      auto t2 = std::chrono::high_resolution_clock::now();
+      time += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+      if (checksum == 0) {
+        std::cout << std::endl << "error?: checksum = " << checksum << std::endl;
+      }
+    }
+    std::cout << "[" << (uint64_t)w << "] " << std::fixed << std::setprecision(8) << (time / (rep * num)) << "; ";
+  }
+  std::cout << std::endl;
+
+
+
+
   std::cout << "random write: " << std::endl;
   for (uint8_t w = 6; w <= 58; w += 7) {
     w += dummy;
@@ -184,6 +267,25 @@ int main(int argc, char *argv[])
       auto t1 = std::chrono::high_resolution_clock::now();
       for (uint64_t i = 0, pos = jump & idxMask; i < num; ++i, pos = (pos + jump) & idxMask) {
         wbVec.write(val, pos);
+      }
+      auto t2 = std::chrono::high_resolution_clock::now();
+      time += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    }
+    std::cout << "[" << (uint64_t)w << "] " << std::fixed << std::setprecision(8) << (time / (rep * num)) << "; ";
+  }
+  std::cout << std::endl;
+
+  std::cout << "random write with [] operator: " << std::endl;
+  for (uint8_t w = 6; w <= 58; w += 7) {
+    w += dummy;
+    wbVec.resize(0);
+    wbVec.convert(w);
+
+    double time = 0;
+    for (uint64_t r = 0; r < rep; ++r) {
+      auto t1 = std::chrono::high_resolution_clock::now();
+      for (uint64_t i = 0, pos = jump & idxMask; i < num; ++i, pos = (pos + jump) & idxMask) {
+        wbVec[pos] = val;
       }
       auto t2 = std::chrono::high_resolution_clock::now();
       time += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
